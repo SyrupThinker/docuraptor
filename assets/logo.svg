@@ -26,9 +26,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.70710678"
-     inkscape:cx="606.37135"
-     inkscape:cy="502.57825"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="414.03059"
+     inkscape:cy="227.42363"
      inkscape:document-units="px"
      inkscape:current-layer="layer3"
      inkscape:document-rotation="0"
@@ -106,14 +106,15 @@
      id="layer1">
     <path
        style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:12.2011;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 664.61885,552.30938 c 40.85431,-13.85161 75.58245,-66.95116 90.49581,-125.18906 -1.87881,-32.4687 182.38748,16.61559 184.16494,-43.06467 1.2364,-41.48284 -52.06524,-29.28439 -131.52508,-84.78639 -164.1807,-138.69494 -128.44891,69.65512 -172.66057,86.35918 -107.77092,40.7184 -127.57018,8.60737 -282.24057,95.73744 -62.60309,22.35504 -237.88787,2.20811 -318.392686,39.87681 63.419181,45.04388 230.164046,32.90967 303.602956,30.6141 47.4037,27.73066 104.59082,40.78361 113.25114,92.54992 17.59666,41.3098 -26.12527,87.31343 -25.00476,137.07276 8.04406,30.17602 66.03211,39.46811 109.55258,30.68608 l -61.86447,-46.22508 c -4.55629,-3.40447 92.00822,-67.94481 35.59006,-162.04814 66.21901,-30.50854 94.40679,-31.02861 155.03065,-51.58295 z"
+       d="m 664.61885,552.30938 c 40.85431,-13.85161 75.58245,-66.95116 90.49581,-125.18906 -1.87881,-32.4687 182.38748,16.61559 184.16494,-43.06467 1.2364,-41.48284 -52.06524,-29.28439 -131.52508,-84.78639 -164.1807,-138.69494 -128.44891,69.65512 -172.66057,86.35918 -107.77092,40.7184 -127.57018,8.60737 -282.24057,95.73744 -62.60309,22.35504 -237.88787,2.20811 -318.392686,39.87681 63.419181,45.04388 230.164046,32.90967 303.602956,30.6141 47.4037,27.73066 95.33105,37.60197 113.25114,92.54992 17.59666,41.3098 -26.12527,87.31343 -25.00476,137.07276 8.04406,30.17602 66.03211,39.46811 109.55258,30.68608 l -61.86447,-46.22508 c -4.55629,-3.40447 92.00822,-67.94481 35.59006,-162.04814 66.21901,-30.50854 94.40679,-31.02861 155.03065,-51.58295 z"
        id="path1985"
        sodipodi:nodetypes="scscsccccccscs" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer6"
-     inkscape:label="Layer 1">
+     inkscape:label="Layer 1"
+     style="display:inline">
     <g
        id="g2088"
        transform="matrix(31.600125,6.6005296,-6.6005296,31.600125,-34.179926,-192.40697)">
@@ -150,7 +151,8 @@
   <g
      inkscape:groupmode="layer"
      id="layer3"
-     inkscape:label="Layer 0">
+     inkscape:label="Layer 0"
+     style="display:inline">
     <path
        style="fill:none;stroke:#000000;stroke-width:12.2011;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 937.41692,385.56162 c -55.2928,1.35262 -116.83187,16.25695 -162.31963,-11.13508"
@@ -180,13 +182,18 @@
        d="m 605.79407,500.32679 c -36.18373,28.88442 -49.89265,73.69975 -35.6159,115.26909 12.84152,21.11703 55.84258,29.9168 105.58447,25.72272 24.7026,-15.25588 33.24864,-28.33983 39.08751,-42.26084 L 683.29535,611.6 c -37.86692,-1.98858 -64.9994,0.95232 -64.88737,-20.76353 0.0646,-18.41243 10.39968,-31.74817 10.43649,-31.80047"
        id="path2020"
        sodipodi:nodetypes="ccccccc" />
+    <path
+       sodipodi:nodetypes="cc"
+       id="path130"
+       d="M 160,380 C 200,300 540,80 620,120"
+       style="display:none;opacity:0;fill:none;stroke:#ff0000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <text
-       transform="rotate(-152.91784,569.55743,548.36262)"
-       id="text32"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:96px;line-height:1.25;font-family:monospace;-inkscape-font-specification:monospace;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       id="text957"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:96px;line-height:1.25;font-family:monospace;-inkscape-font-specification:monospace;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none"
        xml:space="preserve"><textPath
-         style="fill:#ffffff;fill-opacity:1"
-         id="textPath34"
-         xlink:href="#path1981">Docuraptor</textPath></text>
+         id="textPath959"
+         xlink:href="#path130"><tspan
+           style="font-size:96px"
+           id="tspan955">Docuraptor</tspan></textPath></text>
   </g>
 </svg>
