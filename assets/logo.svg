@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="SVGRoot"
+   version="1.1"
+   viewBox="0 0 1024 1024"
+   height="1024"
+   width="1024"
+   sodipodi:docname="logo.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)">
+  <title
+     id="title860">Docuraptor</title>
+  <defs
+     id="defs1402" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="606.37135"
+     inkscape:cy="502.57825"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer3"
+     inkscape:document-rotation="0"
+     showgrid="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:snap-object-midpoints="false"
+     inkscape:snap-others="false"
+     inkscape:snap-grids="false"
+     inkscape:snap-text-baseline="false">
+    <inkscape:grid
+       id="grid1972"
+       type="xygrid" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata1405">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>Docuraptor</dc:title>
+        <cc:license
+           rdf:resource="http://creativecommons.org/licenses/by-nc-nd/4.0/" />
+        <dc:date>19.07.2020</dc:date>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Valentin Anger</dc:title>
+          </cc:Agent>
+        </dc:creator>
+      </cc:Work>
+      <cc:License
+         rdf:about="http://creativecommons.org/licenses/by-nc-nd/4.0/">
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Reproduction" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Distribution" />
+        <cc:requires
+           rdf:resource="http://creativecommons.org/ns#Notice" />
+        <cc:requires
+           rdf:resource="http://creativecommons.org/ns#Attribution" />
+        <cc:prohibits
+           rdf:resource="http://creativecommons.org/ns#CommercialUse" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Layer 4">
+    <circle
+       style="fill:#323232;fill-opacity:1;stroke:#000000;stroke-width:11.7276;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path1981"
+       cx="512"
+       cy="512"
+       r="496.47015" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Layer 3">
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:12.2011;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 517.09153,560.85414 c 123.10236,31.53736 29.40836,172.90526 29.40836,172.90526 0,0 30.2209,16.09876 57.83955,29.93359 -65.98852,14.6267 -89.76623,7.67926 -104.6809,-7.97175 -2.52123,-47.44406 56.35877,-123.42324 -32.35216,-188.9498"
+       id="path1989"
+       sodipodi:nodetypes="ccccc" />
+  </g>
+  <g
+     inkscape:label="Layer 2"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:12.2011;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 664.61885,552.30938 c 40.85431,-13.85161 75.58245,-66.95116 90.49581,-125.18906 -1.87881,-32.4687 182.38748,16.61559 184.16494,-43.06467 1.2364,-41.48284 -52.06524,-29.28439 -131.52508,-84.78639 -164.1807,-138.69494 -128.44891,69.65512 -172.66057,86.35918 -107.77092,40.7184 -127.57018,8.60737 -282.24057,95.73744 -62.60309,22.35504 -237.88787,2.20811 -318.392686,39.87681 63.419181,45.04388 230.164046,32.90967 303.602956,30.6141 47.4037,27.73066 104.59082,40.78361 113.25114,92.54992 17.59666,41.3098 -26.12527,87.31343 -25.00476,137.07276 8.04406,30.17602 66.03211,39.46811 109.55258,30.68608 l -61.86447,-46.22508 c -4.55629,-3.40447 92.00822,-67.94481 35.59006,-162.04814 66.21901,-30.50854 94.40679,-31.02861 155.03065,-51.58295 z"
+       id="path1985"
+       sodipodi:nodetypes="scscsccccccscs" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer6"
+     inkscape:label="Layer 1">
+    <g
+       id="g2088"
+       transform="matrix(31.600125,6.6005296,-6.6005296,31.600125,-34.179926,-192.40697)">
+      <path
+         id="path2040"
+         d="m 25,17 h 2 v 3 h -2 v -3"
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <path
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 25.185273,17.173858 h 2 v 3 h -2 v -3"
+         id="path2040-3" />
+      <path
+         id="path2040-3-6"
+         d="m 25.363495,17.332062 h 2 v 3 h -2 v -3"
+         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.113386;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         id="text2078"
+         y="17.887829"
+         x="25.632729"
+         style="font-size:0.333333px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px"
+         xml:space="preserve"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:0.333333px;font-family:monospace;-inkscape-font-specification:monospace"
+           y="17.887829"
+           x="25.632729"
+           id="tspan2076"
+           sodipodi:role="line">namespace</tspan><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:0.333333px;font-family:monospace;-inkscape-font-specification:monospace"
+           id="tspan2080"
+           y="18.311554"
+           x="25.632729"
+           sodipodi:role="line">Deno</tspan></text>
+    </g>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Layer 0">
+    <path
+       style="fill:none;stroke:#000000;stroke-width:12.2011;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 937.41692,385.56162 c -55.2928,1.35262 -116.83187,16.25695 -162.31963,-11.13508"
+       id="path1998"
+       sodipodi:nodetypes="cc" />
+    <circle
+       style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:12.2011;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path2000"
+       cx="764.8089"
+       cy="325.47934"
+       r="10.821498" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:3.19142;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect2016"
+       width="58.584007"
+       height="30.632418"
+       x="631.62616"
+       y="490.24786"
+       transform="rotate(-14.511011)" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:2.44023;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 794.55727,316.58152 c 16.13137,-10.40066 30.74129,-8.82916 30.74129,-8.82916"
+       id="path2018"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:12.2011;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 605.79407,500.32679 c -36.18373,28.88442 -49.89265,73.69975 -35.6159,115.26909 12.84152,21.11703 55.84258,29.9168 105.58447,25.72272 24.7026,-15.25588 33.24864,-28.33983 39.08751,-42.26084 L 683.29535,611.6 c -37.86692,-1.98858 -64.9994,0.95232 -64.88737,-20.76353 0.0646,-18.41243 10.39968,-31.74817 10.43649,-31.80047"
+       id="path2020"
+       sodipodi:nodetypes="ccccccc" />
+    <text
+       transform="rotate(-152.91784,569.55743,548.36262)"
+       id="text32"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:96px;line-height:1.25;font-family:monospace;-inkscape-font-specification:monospace;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><textPath
+         style="fill:#ffffff;fill-opacity:1"
+         id="textPath34"
+         xlink:href="#path1981">Docuraptor</textPath></text>
+  </g>
+</svg>
