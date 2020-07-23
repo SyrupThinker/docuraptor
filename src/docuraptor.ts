@@ -84,7 +84,7 @@ const assets: { [name: string]: Asset } = {
       }
 
       span.exkeyword {
-        color: darkgreen;
+        color: #005959;
       }
 
       span.identifier {
@@ -96,16 +96,16 @@ const assets: { [name: string]: Asset } = {
       }
 
       span.literal {
-        color: #844605;
+        color: green;
       }
 
       span.typeref {
-        color: darkblue;
+        color: navy;
       }
 
       span.unimplemented {
         color: #f44;
-        background: #222;
+        background: #224;
         border: 0.2em dashed red;
         font-size: 0.8em;
       }
@@ -120,6 +120,49 @@ const assets: { [name: string]: Asset } = {
 
       .padding {
         padding: 0.2em 1em;
+      }
+
+      @media(prefers-color-scheme: dark) {
+        :root {
+          color: #eee;
+          background: #111;
+        }
+
+        a:link {
+          color: cornflowerblue;
+        }
+
+        a:visited {
+          color: dodgerblue;
+        }
+
+        li.link {
+          background: #222;
+        }
+
+        li.namespace {
+          background: #333;
+        }
+
+        li.node {
+          background: #222;
+        }
+
+        span.exkeyword {
+          color: #00c1c1;
+        }
+
+        span.keyword {
+          color: violet;
+        }
+
+        span.literal {
+          color: lightgreen;
+        }
+
+        span.typeref {
+          color: deepskyblue;
+        }
       }
     `,
     mimetype: "text/css",
@@ -517,7 +560,7 @@ class DocRenderer {
       <ol class="nomarks indent">
         ${
       Array.from(unique_deps.values()).sort().map((u) =>
-        `<li>${
+        `<li class=link>${
           this.#options.static
             ? escape(u)
             : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
@@ -982,11 +1025,11 @@ async function handleIndex(req: ServerRequest): Promise<void> {
         ${rend.renderHeader("Docuraptor Index – Locally available modules")}
         <main>
           <ul>
-            <li><a href="/doc/">Deno Builtin</a></li>
+            <li class=link><a href="/doc/">Deno Builtin</a></li>
             ${
       known_documentation.sort().map(
         (url) =>
-          `<li><a href="/doc/${encodeURIComponent(url)}">${
+          `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
             escape(url)
           }</a></li>`,
       ).join("")
