@@ -8,8 +8,8 @@ It generates and serves HTML documentation for JS/TS modules with the help of [D
 
 ## Installation
 
-`$ deno install --allow-run --allow-read --allow-net https://raw.githubusercontent.com/SyrupThinker/docuraptor/master/src/docuraptor.ts`
+`$ deno install --allow-run --allow-read --allow-write --allow-net https://raw.githubusercontent.com/SyrupThinker/docuraptor/master/src/docuraptor.ts`
 
 ## Usage
 
-`$ deno run --allow-run --allow-read --allow-net https://raw.githubusercontent.com/SyrupThinker/docuraptor/master/src/docuraptor.ts --help`
+`$ deno run --allow-run --allow-read --allow-write --allow-net https://raw.githubusercontent.com/SyrupThinker/docuraptor/master/src/docuraptor.ts --help`

@@ -11,794 +11,8 @@ import {
 import * as ddoc from "./deno_doc_json.ts";
 import * as info from "./deno_info_json.ts";
 
-const decoder = new TextDecoder();
-
-function escape(s: string): string {
-  return s.replaceAll("&", "&amp").replaceAll("<", "&lt").replaceAll(
-    ">",
-    "&gt",
-  );
-}
-
-function generateHead(title: string): string {
-  return `
-      <meta charset="utf-8">
-      <meta name=viewport content="width=device-width">
-      <title>${title}</title>
-      <link rel=icon href="/static/logo">
-      <link rel=stylesheet href="/static/css">
-      <script type=module src="/static/script"></script>
-    `;
-}
-
-function renderClassConstructorDef(doc: ddoc.ClassConstructorDef): string {
-  let res = `<span class=keyword>${
-    doc.accessibility ? escape(doc.accessibility) + " " : ""
-  } constructor</span>(${renderParams(doc.params)})`;
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderClassDef(doc: ddoc.DocNodeClass, namespace?: string[]): string {
-  const cd = doc.classDef;
-
-  let res = `<span class=keyword>${
-    cd.isAbstract ? "abstract " : ""
-  }class</span> ${renderIdentifier(doc.name, namespace)}${
-    renderTypeParams(cd.typeParams)
-  }`;
-
-  if (cd.extends !== null) {
-    res += ` <span class=keyword>extends</span> <span class=typeref>${
-      escape(cd.extends)
-    }</span>${
-      cd.superTypeParams.length > 0
-        ? `&lt${
-          cd.superTypeParams.map((t) => renderTsTypeDef(t)).join(", ")
-        }&gt`
-        : ""
-    }`;
-  }
-
-  if (cd.implements.length > 0) {
-    res += ` <span class=keyword>implements</span> ${
-      cd.implements.map((t) => renderTsTypeDef(t)).join(", ")
-    }`;
-  }
-
-  if (cd.properties.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      cd.properties.filter((p) => p.accessibility !== "private")
-        .map((p) => `<li>${renderClassPropertyDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (cd.constructors.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      cd.constructors.filter((m) => m.accessibility !== "private")
-        .map((p) => `<li>${renderClassConstructorDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (cd.methods.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      cd.methods.filter((m) => m.accessibility !== "private")
-        .map((p) => `<li>${renderClassMethodDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (cd.indexSignatures.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      cd.indexSignatures.map((p) => `<li>${renderIndexSignatureDef(p)}</li>`)
-        .join("")
-    }
-    </ol>`;
-  }
-
-  return res;
-}
-
-function renderClassMethodDef(doc: ddoc.ClassMethodDef): string {
-  let res = `<span class=keyword>${
-    doc.accessibility ? escape(doc.accessibility) + " " : ""
-  }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
-    doc.kind === "getter"
-      ? "get "
-      : doc.kind === "setter"
-      ? "set "
-      : doc.kind === "method"
-      ? ""
-      : unreachable()
-  }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}${
-    renderTypeParams(doc.functionDef.typeParams)
-  }(${renderParams(doc.functionDef.params)})`;
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderClassPropertyDef(doc: ddoc.ClassPropertyDef): string {
-  let res = `<span class=keyword>${
-    doc.accessibility ? escape(doc.accessibility) + " " : ""
-  }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
-    doc.readonly ? "readonly " : ""
-  }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}`;
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderDoc(doc: ddoc.DocNode[], namespace?: string[]): string {
-  let final = "<ol class=nomarks>";
-  for (const node of doc.sort(sortDocNode)) {
-    final += `<li class=${node.kind === "namespace" ? "namespace" : "node"}>${
-      renderDocNode(node, namespace)
-    }</li>`;
-  }
-  final += "</ol>";
-  return final;
-}
-
-function renderDocNode(doc: ddoc.DocNode, namespace?: string[]): string {
-  return `
-    ${renderDocNodeKind(doc, namespace)}
-    ${doc.jsDoc !== null ? `<hr>${renderJSDoc(doc.jsDoc)}` : ""}
-  `;
-}
-
-function renderDocNodeKind(doc: ddoc.DocNode, namespace?: string[]): string {
-  switch (doc.kind) {
-    case "class":
-      return renderClassDef(doc, namespace);
-    case "enum":
-      return renderEnumDef(doc, namespace);
-    case "function":
-      return renderFunctionDef(doc, namespace);
-    case "interface":
-      return renderInterfaceDef(doc, namespace);
-    case "namespace":
-      return renderNamespaceDef(doc, namespace);
-    case "typeAlias":
-      return renderTypeAliasDef(doc, namespace);
-    case "variable":
-      return renderVariableDef(doc, namespace);
-    default:
-      return unimplemented((doc as { kind: string }).kind);
-  }
-}
-
-function renderEnumDef(doc: ddoc.DocNodeEnum, namespace?: string[]): string {
-  return `<span class=keyword>enum</span> ${
-    renderIdentifier(doc.name, namespace)
-  }
-    <ol class="nomarks noborder">${
-    doc.enumDef.members.map((m) => `<li>${escape(m.name)}</li>`).join("")
-  }</ol>`;
-}
-
-function renderFunctionDef(
-  doc: ddoc.DocNodeFunction,
-  namespace?: string[],
-): string {
-  let res = `<span class=keyword>${
-    doc.functionDef.isAsync ? "async " : ""
-  }function${doc.functionDef.isGenerator ? "*" : ""}</span> ${
-    renderIdentifier(doc.name, namespace)
-  }${renderTypeParams(doc.functionDef.typeParams)}(${
-    renderParams(doc.functionDef.params)
-  })`;
-
-  if (doc.functionDef.returnType !== null) {
-    res += `: ${renderTsTypeDef(doc.functionDef.returnType)}`;
-  }
-
-  return res;
-}
-
-function renderHeader(title: string): string {
-  return `<header>
-    <a href="/"><img class=logo src="/static/logo" alt="Logo"></a>
-    <h3 class="fill inline">${title}</h3>
-    <label>Module URL: <input id=url type=url></label>
-    <input id=submit type=button value=Go>
-  </header>`;
-}
-
-function renderIdentifier(identifier: string, namespace?: string[]): string {
-  return escape(namespace ? namespace.join(".") + "." : "") +
-    `<span class=identifier>${escape(identifier)}</span>`;
-}
-
-function renderInfo(info: info.FileInfo): string {
-  const unique_deps = new Set(info.deps[1].map((d) => d[0]));
-  const direct = unique_deps.size;
-
-  function scan_deps(deps: info.FileDeps): void {
-    unique_deps.add(deps[0]);
-
-    for (const dep of deps[1]) {
-      scan_deps(dep);
-    }
-  }
-  scan_deps(info.deps);
-  unique_deps.delete(info.deps[0]);
-
-  const transitive = unique_deps.size - direct;
-
-  return `<details>
-    <summary class=padding>
-      Unique dependencies: ${direct} direct; ${transitive} transitive.
-    </summary>
-    <ol class=nomarks>
-      ${
-    Array.from(unique_deps.values()).sort().map((u) =>
-      `<li><a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a></li>`
-    ).join("")
-  }
-    </ol>
-  </details>`;
-}
-
-function renderIndexSignatureDef(
-  doc: ddoc.LiteralIndexSignatureDef,
-): string {
-  let res = `${doc.readonly ? "readonly " : ""} [${renderParams(doc.params)}]`;
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  return res;
-}
-
-function renderInterfaceCallSignatureDef(
-  doc: ddoc.InterfaceCallSignatureDef,
-): string {
-  let res = `${renderTypeParams(doc.typeParams)}(${renderParams(doc.params)})`;
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderInterfaceDef(
-  doc: ddoc.DocNodeInterface,
-  namespace?: string[],
-): string {
-  const id = doc.interfaceDef;
-
-  let res = `<span class=keyword>interface</span> ${
-    renderIdentifier(doc.name, namespace)
-  }${renderTypeParams(id.typeParams)}`;
-
-  if (id.extends.length > 0) {
-    res += ` <span class=keyword>extends</span> <span class=typeref>${
-      id.extends.map((t) => renderTsTypeDef(t)).join(", ")
-    }</span>`;
-  }
-
-  if (id.properties.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      id.properties
-        .map((p) => `<li>${renderInterfacePropertyDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (id.callSignatures.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      id.callSignatures
-        .map((p) => `<li>${renderInterfaceCallSignatureDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (id.methods.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      id.methods
-        .map((p) => `<li>${renderInterfaceMethodDef(p)}</li>`).join("")
-    }
-    </ol>`;
-  }
-
-  if (id.indexSignatures.length > 0) {
-    res += `<hr><ol class=nomarks>
-      ${
-      id.indexSignatures.map((p) => `<li>${renderIndexSignatureDef(p)}</li>`)
-        .join("")
-    }
-    </ol>`;
-  }
-
-  return res;
-}
-
-function renderInterfaceMethodDef(doc: ddoc.InterfaceMethodDef): string {
-  let res = `${escape(doc.name)}${doc.optional ? "?" : ""}${
-    renderTypeParams(doc.typeParams)
-  }(${renderParams(doc.params)})`;
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderInterfacePropertyDef(doc: ddoc.InterfacePropertyDef): string {
-  let res = `${escape(doc.name)}${doc.optional ? "?" : ""}`;
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  if (doc.jsDoc !== null) {
-    res += `<hr>${renderJSDoc(doc.jsDoc)}`;
-  }
-
-  return res;
-}
-
-function renderJSDoc(doc: string): string {
-  const summary_end = doc.indexOf("\n\n");
-  const [summary, remainder] = summary_end !== -1
-    ? [doc.slice(0, summary_end), doc.slice(summary_end)]
-    : [doc, undefined];
-
-  let res = `<pre>${escape(summary)}</pre>`;
-  if (remainder !== undefined) {
-    res = `<details><summary>${res}</summary><pre>${
-      escape(remainder)
-    }</pre></details>`;
-  }
-  return res;
-}
-
-function renderLiteralCallSignatureDef(
-  doc: ddoc.LiteralCallSignatureDef,
-): string {
-  let res = `${renderTypeParams(doc.typeParams)}(${renderParams(doc.params)})`;
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  return res;
-}
-
-function renderLiteralMethodDef(doc: ddoc.LiteralMethodDef): string {
-  let res = `${escape(doc.name)}${renderTypeParams(doc.typeParams)}(${
-    renderParams(doc.params)
-  })`;
-
-  return res;
-}
-
-function renderLiteralPropertyDef(prop: ddoc.LiteralPropertyDef): string {
-  let res = `${escape(prop.name)}${prop.optional ? "?" : ""}`;
-
-  if (prop.tsType !== null) {
-    res += `: ${renderTsTypeDef(prop.tsType)}`;
-  }
-
-  return res;
-}
-
-function renderNamespaceDef(
-  doc: ddoc.DocNodeNamespace,
-  namespace: string[] = [],
-): string {
-  return `<span class=keyword>namespace</span> ${escape(doc.name)} ${
-    renderDoc(doc.namespaceDef.elements, [...namespace, doc.name])
-  }`;
-}
-
-function renderParamDef(doc: ddoc.ParamDef): string {
-  let res = renderParamDefKind(doc);
-
-  if (doc.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.tsType)}`;
-  }
-
-  return res;
-}
-
-function renderObjectPatPropDef(prop: ddoc.ObjectPatPropDef): string {
-  switch (prop.kind) {
-    case "assign":
-      // TODO Does not display assigned value
-      return escape(prop.key);
-    case "keyValue":
-      return `${escape(prop.key)}: ${renderParamDef(prop.value)}`;
-    case "rest":
-      return `...${renderParamDef(prop.arg)}`;
-  }
-}
-
-function renderParamDefKind(doc: ddoc.ParamDef): string {
-  switch (doc.kind) {
-    case "array":
-      return `[${
-        doc.elements.map((e) => e === null ? "" : renderParamDef(e)).join(", ")
-      }]${doc.optional ? "?" : ""}`;
-    case "assign":
-      // TODO Does not display assigned value
-      return renderParamDef(doc.left);
-    case "identifier":
-      return escape(doc.name) + (doc.optional ? "?" : "");
-    case "object":
-      return `{${doc.props.map((p) => renderObjectPatPropDef(p)).join(", ")}}${
-        doc.optional ? "?" : ""
-      }`;
-    case "rest":
-      return `...${renderParamDef(doc.arg)}`;
-    default:
-      return unimplemented((doc as { kind: string }).kind);
-  }
-}
-
-function renderParams(params: ddoc.ParamDef[]): string {
-  return params.map((p) => renderParamDef(p)).join(", ");
-}
-
-function renderTypeAliasDef(
-  doc: ddoc.DocNodeTypeAlias,
-  namespace?: string[],
-): string {
-  return `<span class=keyword>type</span> ${
-    renderIdentifier(doc.name, namespace)
-  }${renderTypeParams(doc.typeAliasDef.typeParams)} = ${
-    renderTsTypeDef(doc.typeAliasDef.tsType)
-  }`;
-}
-
-function renderTsTypeDef(type_def: ddoc.TsTypeDef): string {
-  switch (type_def.kind) {
-    case "array":
-      return renderTsTypeDef(type_def.array) + "[]";
-    case "conditional": {
-      const ct = type_def.conditionalType;
-      return `${
-        renderTsTypeDef(ct.checkType)
-      } <span class=keyword>extends</span> ${
-        renderTsTypeDef(ct.extendsType)
-      } ? ${renderTsTypeDef(ct.trueType)} : ${renderTsTypeDef(ct.falseType)}`;
-    }
-    case "fnOrConstructor": {
-      const fn = type_def.fnOrConstructor;
-      return `${
-        fn.constructor ? "<span class=keyword>constructor</span>" : ""
-      }${renderTypeParams(fn.typeParams)}(${renderParams(fn.params)}) => ${
-        renderTsTypeDef(fn.tsType)
-      }`;
-    }
-    case "indexedAccess": {
-      const ia = type_def.indexedAccess;
-      return `${ia.readonly ? "<span class=keyword>readonly</span> " : ""}${
-        renderTsTypeDef(ia.objType)
-      }[${renderTsTypeDef(ia.indexType)}]`;
-    }
-    case "intersection":
-      return type_def.intersection.map((t) => renderTsTypeDef(t)).join(" & ");
-    case "keyword":
-      return `<span class=exkeyword>${escape(type_def.keyword)}</span>`;
-    case "literal": {
-      const lit = type_def.literal;
-      return `<span class=literal>${
-        lit.kind === "boolean"
-          ? String(lit.boolean)
-          : lit.kind === "number"
-          ? String(lit.number)
-          : lit.kind === "string"
-          ? `"${escape(lit.string)}"`
-          : unreachable()
-      }</span>`;
-    }
-    case "optional":
-      return `${renderTsTypeDef(type_def.optional)}?`;
-    case "parenthesized":
-      return `(${renderTsTypeDef(type_def.parenthesized)})`;
-    case "rest":
-      return `...${renderTsTypeDef(type_def.rest)}`;
-    case "this":
-      assert(type_def.this);
-      return `<span class=keyword>this</span>`;
-    case "tuple":
-      return `[${type_def.tuple.map((t) => renderTsTypeDef(t)).join(", ")}]`;
-    case "typeLiteral":
-      return renderTypeLiteral(type_def.typeLiteral);
-    case "typeOperator":
-      return `<span class=keyword>${
-        escape(type_def.typeOperator.operator)
-      }</span> ${renderTsTypeDef(type_def.typeOperator.tsType)}`;
-    case "typeQuery":
-      return `<span class=typeref>${escape(type_def.typeQuery)}</span>`;
-    case "typeRef": {
-      const tr = type_def.typeRef;
-      return `<span class=typeref>${escape(tr.typeName)}</span>${
-        tr.typeParams !== null
-          ? `&lt${
-            tr.typeParams.map((t) => renderTsTypeDef(t)).join(
-              ", ",
-            )
-          }&gt`
-          : ""
-      }`;
-    }
-    case "union":
-      return type_def.union.map((t) => renderTsTypeDef(t)).join(" | ");
-    default:
-      return unimplemented((type_def as { kind: string }).kind);
-  }
-}
-
-function renderTypeLiteral(lit: ddoc.TsTypeLiteralDef): string {
-  return `{ ${
-    [
-      lit.properties.map((p) => renderLiteralPropertyDef(p)),
-      lit.callSignatures.map((c) => renderLiteralCallSignatureDef(c)),
-      lit.methods.map((m) => renderLiteralMethodDef(m)),
-      lit.indexSignatures.map((i) => renderIndexSignatureDef(i)),
-      "",
-    ].flat().join("; ")
-  } }`;
-}
-
-function renderTypeParams(type_params: ddoc.TsTypeParamDef[]): string {
-  return type_params.length !== 0
-    ? `&lt${type_params.map((t) => renderTypeParamDef(t)).join(", ")}&gt`
-    : "";
-}
-
-function renderTypeParamDef(doc: ddoc.TsTypeParamDef): string {
-  let res = `<span class=typeref>${escape(doc.name)}</span>`;
-
-  if (doc.constraint !== undefined) {
-    res += ` <span class=keyword>extends</span> ${
-      renderTsTypeDef(doc.constraint)
-    }`;
-  }
-  if (doc.default !== undefined) {
-    res += ` = ${renderTsTypeDef(doc.default)}`;
-  }
-
-  return res;
-}
-
-function renderVariableDef(
-  doc: ddoc.DocNodeVariable,
-  namespace?: string[],
-): string {
-  let res = `<span class=keyword>${escape(doc.variableDef.kind)}</span> ${
-    renderIdentifier(doc.name, namespace)
-  }`;
-
-  if (doc.variableDef.tsType !== null) {
-    res += `: ${renderTsTypeDef(doc.variableDef.tsType)}`;
-  }
-
-  return res;
-}
-
-function sortDocNode(a: ddoc.DocNode, b: ddoc.DocNode): number {
-  return a.kind !== b.kind
-    ? a.kind.localeCompare(b.kind)
-    : a.name.localeCompare(b.name);
-}
-
-function unimplemented(what: string | undefined | null): string {
-  return `<span class=unimplemented>UNIMPLEMENTED${
-    what != null ? ": " + escape(what) : ""
-  }</span>`;
-}
-
-/*
- * Request handling
- */
-
-const doc_prefix = "/doc/";
-async function handleDoc(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(doc_prefix));
-  const doc_url = decodeURIComponent(req.url.substr(doc_prefix.length));
-  const builtin = doc_url.length === 0;
-
-  let doc_json;
-  let info_json = undefined;
-  try {
-    {
-      const proc = Deno.run({
-        cmd: [
-          "deno",
-          "doc",
-          "--json",
-          builtin ? "--builtin" : doc_url,
-        ],
-        stdin: "null",
-        stdout: "piped",
-        stderr: "piped",
-      });
-
-      const stdout = decoder.decode(await proc.output());
-      const stderr = decoder.decode(await proc.stderrOutput());
-      const { success } = await proc.status();
-
-      if (!success) {
-        throw { stderr };
-      }
-
-      doc_json = JSON.parse(stdout);
-    }
-    if (!builtin) {
-      const proc = Deno.run({
-        cmd: [
-          "deno",
-          "info",
-          "--json",
-          "--unstable",
-          doc_url,
-        ],
-        stdin: "null",
-        stdout: "piped",
-        stderr: "piped",
-      });
-
-      const stdout = decoder.decode(await proc.output());
-      const stderr = decoder.decode(await proc.stderrOutput());
-      const { success } = await proc.status();
-
-      if (!success) {
-        throw { stderr };
-      }
-
-      info_json = JSON.parse(stdout);
-    }
-  } catch (err) {
-    if (err.stderr !== undefined) {
-      handleFail(req, 500, escape(err.stderr));
-    } else {
-      handleFail(req, 500, "Documentation generation failed");
-    }
-    return;
-  }
-
-  await req.respond({
-    status: 200,
-    body: `<!DOCTYPE html>
-    <html>
-      <head>
-        ${generateHead("Docuraptor Documentation")}
-      </head>
-      <body>
-        ${
-      renderHeader("Documentation for " + (builtin ? "Deno" : escape(doc_url)))
-    }
-        <main>
-          ${info_json ? renderInfo(info_json) : ""}
-          ${renderDoc(doc_json)}
-        </main>
-      </body>
-    </html>`,
-  });
-}
-
-async function handleFail(
-  req: ServerRequest,
-  status: number,
-  message: string,
-): Promise<void> {
-  await req.respond({
-    status,
-    body: `<!DOCTYPE html>
-    <html>
-      <head>
-        ${generateHead("Docuraptor Error")}
-      </head>
-      <body>
-        ${renderHeader("An error occured")}
-        <main>
-          <pre>
-            ${escape(message)}
-          </pre>
-        </main>
-      </body>
-    </html>`,
-  });
-}
-
-const file_url = new URL("file:/");
-let deps_url: URL | undefined = undefined;
-async function handleIndex(req: ServerRequest): Promise<void> {
-  const known_documentation = [];
-
-  if (deps_url !== undefined) {
-    for await (const protocol of Deno.readDir(deps_url.pathname)) {
-      if (!protocol.isDirectory) {
-        continue;
-      }
-      const path_url = new URL(protocol.name + "/", deps_url);
-      for await (const host of Deno.readDir(path_url.pathname)) {
-        if (!host.isDirectory) {
-          continue;
-        }
-        const host_url = new URL(host.name + "/", path_url);
-        for await (const resource of Deno.readDir(host_url.pathname)) {
-          if (!resource.isFile || !resource.name.endsWith(".metadata.json")) {
-            continue;
-          }
-
-          const resource_url = new URL(resource.name, host_url);
-          const metadata_string = await Deno.readTextFile(
-            resource_url.pathname,
-          );
-          const metadata: { headers: { [_: string]: string }; url: string } =
-            JSON.parse(metadata_string);
-
-          known_documentation.push(metadata.url);
-        }
-      }
-    }
-  } else {
-    console.warn("Failed to determine cache directory");
-  }
-
-  await req.respond({
-    status: 200,
-    body: `<html>
-      <head>
-        ${generateHead("Docuraptor Index")}
-      </head>
-      <body>
-        ${renderHeader("Docuraptor Index – Locally available modules")}
-        <main>
-          <ul>
-            <li><a href="/doc/">Deno Builtin</a></li>
-            ${
-      known_documentation.sort().map(
-        (url) =>
-          `<li><a href="/doc/${encodeURIComponent(url)}">${
-            escape(url)
-          }</a></li>`,
-      ).join("")
-    }
-          </ul>
-        </main>
-      </body>
-    </html>`,
-  });
-}
-
 interface Asset {
-  content: string | Uint8Array;
+  content: string;
   mimetype?: string;
 }
 
@@ -860,6 +74,10 @@ const assets: { [name: string]: Asset } = {
         padding-left: 0;
       }
 
+      ol.indent {
+        padding: 0 2ch;
+      }
+
       pre {
         white-space: pre-wrap;
         font-size: 0.9em;
@@ -913,7 +131,7 @@ const assets: { [name: string]: Asset } = {
   },
   script: {
     content: `
-      document.getElementById("submit").addEventListener("click", () => {
+      document.getElementById("openDoc")?.addEventListener("click", () => {
         const url = document.getElementById("url");
         const encoded = encodeURIComponent(url.value);
         window.location.href = "/doc/" + encoded;
@@ -922,6 +140,863 @@ const assets: { [name: string]: Asset } = {
     mimetype: "application/javascript",
   },
 };
+
+const decoder = new TextDecoder();
+
+function escape(s: string): string {
+  return s.replaceAll("&", "&amp").replaceAll("<", "&lt").replaceAll(
+    ">",
+    "&gt",
+  );
+}
+
+async function getDenoData(
+  specifier?: string,
+): Promise<{ doc: ddoc.DocNode[]; info: info.FileInfo | null }> {
+  const proc = Deno.run({
+    cmd: [
+      "deno",
+      "doc",
+      "--json",
+      specifier ?? "--builtin",
+    ],
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const stdout = decoder.decode(await proc.output());
+  const stderr = decoder.decode(await proc.stderrOutput());
+  const { success } = await proc.status();
+
+  if (!success) {
+    throw { stderr };
+  }
+
+  const doc_j: ddoc.DocNode[] = JSON.parse(stdout);
+  let info_j: info.FileInfo | null = null;
+
+  if (specifier !== undefined) {
+    const proc = Deno.run({
+      cmd: [
+        "deno",
+        "info",
+        "--json",
+        "--unstable",
+        specifier,
+      ],
+      stdin: "null",
+      stdout: "piped",
+      stderr: "piped",
+    });
+
+    const stdout = decoder.decode(await proc.output());
+    const stderr = decoder.decode(await proc.stderrOutput());
+    const { success } = await proc.status();
+
+    if (!success) {
+      throw { stderr };
+    }
+
+    info_j = JSON.parse(stdout);
+  }
+
+  return { doc: doc_j, info: info_j };
+}
+
+function sortDocNode(a: ddoc.DocNode, b: ddoc.DocNode): number {
+  return a.kind !== b.kind
+    ? a.kind.localeCompare(b.kind)
+    : a.name.localeCompare(b.name);
+}
+
+function unimplemented(what: string | undefined | null): string {
+  return `<span class=unimplemented>UNIMPLEMENTED${
+    what != null ? ": " + escape(what) : ""
+  }</span>`;
+}
+
+/*
+ * Documentation generator
+ */
+
+interface DocRendererOptions {
+  static?: boolean;
+}
+
+class DocRenderer {
+  #options: DocRendererOptions;
+
+  constructor(options: DocRendererOptions = {}) {
+    this.#options = options;
+  }
+
+  async render(specifier?: string): Promise<string> {
+    const { doc: doc_j, info: info_j } = await getDenoData(specifier);
+    return `<!DOCTYPE html>
+      <html>
+        <head>
+          ${this.renderHead("Docuraptor Documentation")}
+        </head>
+        <body>
+          ${
+      this.renderHeader(
+        "Documentation for " + (specifier ? escape(specifier) : "Deno"),
+      )
+    }
+          <main>
+            ${info_j ? this.renderInfo(info_j) : ""}
+            ${this.renderDoc(doc_j)}
+          </main>
+        </body>
+      </html>`;
+  }
+
+  renderClassConstructorDef(doc: ddoc.ClassConstructorDef): string {
+    let res = `<span class=keyword>${
+      doc.accessibility ? escape(doc.accessibility) + " " : ""
+    } constructor</span>(${this.renderParams(doc.params)})`;
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderClassDef(doc: ddoc.DocNodeClass, namespace?: string[]): string {
+    const cd = doc.classDef;
+
+    let res = `<span class=keyword>${
+      cd.isAbstract ? "abstract " : ""
+    }class</span> ${this.renderIdentifier(doc.name, namespace)}${
+      this.renderTypeParams(cd.typeParams)
+    }`;
+
+    if (cd.extends !== null) {
+      res += ` <span class=keyword>extends</span> <span class=typeref>${
+        escape(cd.extends)
+      }</span>${
+        cd.superTypeParams.length > 0
+          ? `&lt${
+            cd.superTypeParams.map((t) => this.renderTsTypeDef(t)).join(", ")
+          }&gt`
+          : ""
+      }`;
+    }
+
+    if (cd.implements.length > 0) {
+      res += ` <span class=keyword>implements</span> ${
+        cd.implements.map((t) => this.renderTsTypeDef(t)).join(", ")
+      }`;
+    }
+
+    if (cd.properties.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        cd.properties.filter((p) => p.accessibility !== "private")
+          .map((p) => `<li>${this.renderClassPropertyDef(p)}</li>`).join("")
+      }
+    </ol>`;
+    }
+
+    if (cd.constructors.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        cd.constructors.filter((m) => m.accessibility !== "private")
+          .map((p) => `<li>${this.renderClassConstructorDef(p)}</li>`).join("")
+      }
+    </ol>`;
+    }
+
+    if (cd.methods.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        cd.methods.filter((m) => m.accessibility !== "private")
+          .map((p) => `<li>${this.renderClassMethodDef(p)}</li>`).join("")
+      }
+    </ol>`;
+    }
+
+    if (cd.indexSignatures.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        cd.indexSignatures.map((p) =>
+          `<li>${this.renderIndexSignatureDef(p)}</li>`
+        )
+          .join("")
+      }
+    </ol>`;
+    }
+
+    return res;
+  }
+
+  renderClassMethodDef(doc: ddoc.ClassMethodDef): string {
+    let res = `<span class=keyword>${
+      doc.accessibility ? escape(doc.accessibility) + " " : ""
+    }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
+      doc.kind === "getter"
+        ? "get "
+        : doc.kind === "setter"
+        ? "set "
+        : doc.kind === "method"
+        ? ""
+        : unreachable()
+    }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}${
+      this.renderTypeParams(doc.functionDef.typeParams)
+    }(${this.renderParams(doc.functionDef.params)})`;
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderClassPropertyDef(doc: ddoc.ClassPropertyDef): string {
+    let res = `<span class=keyword>${
+      doc.accessibility ? escape(doc.accessibility) + " " : ""
+    }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
+      doc.readonly ? "readonly " : ""
+    }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}`;
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderDoc(doc: ddoc.DocNode[], namespace?: string[]): string {
+    let final = "<ol class=nomarks>";
+    for (const node of doc.sort(sortDocNode)) {
+      final += `<li class=${node.kind === "namespace" ? "namespace" : "node"}>${
+        this.renderDocNode(node, namespace)
+      }</li>`;
+    }
+    final += "</ol>";
+    return final;
+  }
+
+  renderDocNode(doc: ddoc.DocNode, namespace?: string[]): string {
+    return `
+    ${this.renderDocNodeKind(doc, namespace)}
+    ${doc.jsDoc !== null ? `<hr>${this.renderJSDoc(doc.jsDoc)}` : ""}
+  `;
+  }
+
+  renderDocNodeKind(doc: ddoc.DocNode, namespace?: string[]): string {
+    switch (doc.kind) {
+      case "class":
+        return this.renderClassDef(doc, namespace);
+      case "enum":
+        return this.renderEnumDef(doc, namespace);
+      case "function":
+        return this.renderFunctionDef(doc, namespace);
+      case "interface":
+        return this.renderInterfaceDef(doc, namespace);
+      case "namespace":
+        return this.renderNamespaceDef(doc, namespace);
+      case "typeAlias":
+        return this.renderTypeAliasDef(doc, namespace);
+      case "variable":
+        return this.renderVariableDef(doc, namespace);
+      default:
+        return unimplemented((doc as { kind: string }).kind);
+    }
+  }
+
+  renderEnumDef(doc: ddoc.DocNodeEnum, namespace?: string[]): string {
+    return `<span class=keyword>enum</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    }
+    <ol class="nomarks noborder">${
+      doc.enumDef.members.map((m) => `<li>${escape(m.name)}</li>`).join("")
+    }</ol>`;
+  }
+
+  renderFunctionDef(
+    doc: ddoc.DocNodeFunction,
+    namespace?: string[],
+  ): string {
+    let res = `<span class=keyword>${
+      doc.functionDef.isAsync ? "async " : ""
+    }function${doc.functionDef.isGenerator ? "*" : ""}</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    }${this.renderTypeParams(doc.functionDef.typeParams)}(${
+      this.renderParams(doc.functionDef.params)
+    })`;
+
+    if (doc.functionDef.returnType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.functionDef.returnType)}`;
+    }
+
+    return res;
+  }
+
+  renderHead(title: string): string {
+    return `
+      <meta charset="utf-8">
+      <meta name=viewport content="width=device-width">
+      <title>${title}</title>
+    ` + (
+      this.#options.static
+        ? `
+        <style>${assets.css.content}</style>
+        <script>${assets.script.content}</script>
+      `
+        : `
+        <link rel=icon href="/static/logo">
+        <link rel=stylesheet href="/static/css">
+        <script type=module src="/static/script"></script>
+      `
+    );
+  }
+
+  renderHeader(title: string): string {
+    return `<header>
+      ${
+      this.#options.static
+        ? ""
+        : `<a href="/"><img class=logo src="/static/logo" alt="Logo"></a>`
+    }
+      <h3 class="fill inline">${title}</h3>
+      ${
+      this.#options.static ? "" : `
+          <label>Module URL: <input id=url type=url></label>
+          <input id=openDoc type=button value=Go>
+        `
+    }
+    </header>`;
+  }
+
+  renderIdentifier(identifier: string, namespace?: string[]): string {
+    return escape(namespace ? namespace.join(".") + "." : "") +
+      `<span class=identifier>${escape(identifier)}</span>`;
+  }
+
+  renderIndexSignatureDef(
+    doc: ddoc.LiteralIndexSignatureDef,
+  ): string {
+    let res = `${doc.readonly ? "readonly " : ""} [${
+      this.renderParams(doc.params)
+    }]`;
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    return res;
+  }
+
+  renderInfo(info: info.FileInfo): string {
+    const unique_deps = new Set(info.deps[1].map((d) => d[0]));
+    const direct = unique_deps.size;
+
+    function scan_deps(deps: info.FileDeps): void {
+      unique_deps.add(deps[0]);
+
+      for (const dep of deps[1]) {
+        scan_deps(dep);
+      }
+    }
+    scan_deps(info.deps);
+    unique_deps.delete(info.deps[0]);
+
+    const transitive = unique_deps.size - direct;
+
+    return `<details>
+      <summary class=padding>
+        Unique dependencies: ${direct} direct; ${transitive} transitive.
+      </summary>
+      <ol class="nomarks indent">
+        ${
+      Array.from(unique_deps.values()).sort().map((u) =>
+        `<li>${
+          this.#options.static
+            ? escape(u)
+            : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
+        }</li>`
+      ).join("")
+    }
+      </ol>
+    </details>`;
+  }
+
+  renderInterfaceCallSignatureDef(
+    doc: ddoc.InterfaceCallSignatureDef,
+  ): string {
+    let res = `${this.renderTypeParams(doc.typeParams)}(${
+      this.renderParams(doc.params)
+    })`;
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderInterfaceDef(
+    doc: ddoc.DocNodeInterface,
+    namespace?: string[],
+  ): string {
+    const id = doc.interfaceDef;
+
+    let res = `<span class=keyword>interface</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    }${this.renderTypeParams(id.typeParams)}`;
+
+    if (id.extends.length > 0) {
+      res += ` <span class=keyword>extends</span> <span class=typeref>${
+        id.extends.map((t) => this.renderTsTypeDef(t)).join(", ")
+      }</span>`;
+    }
+
+    if (id.properties.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        id.properties
+          .map((p) => `<li>${this.renderInterfacePropertyDef(p)}</li>`).join("")
+      }
+    </ol>`;
+    }
+
+    if (id.callSignatures.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        id.callSignatures
+          .map((p) => `<li>${this.renderInterfaceCallSignatureDef(p)}</li>`)
+          .join("")
+      }
+    </ol>`;
+    }
+
+    if (id.methods.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        id.methods
+          .map((p) => `<li>${this.renderInterfaceMethodDef(p)}</li>`).join("")
+      }
+    </ol>`;
+    }
+
+    if (id.indexSignatures.length > 0) {
+      res += `<hr><ol class=nomarks>
+      ${
+        id.indexSignatures.map((p) =>
+          `<li>${this.renderIndexSignatureDef(p)}</li>`
+        )
+          .join("")
+      }
+    </ol>`;
+    }
+
+    return res;
+  }
+
+  renderInterfaceMethodDef(doc: ddoc.InterfaceMethodDef): string {
+    let res = `${escape(doc.name)}${doc.optional ? "?" : ""}${
+      this.renderTypeParams(doc.typeParams)
+    }(${this.renderParams(doc.params)})`;
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderInterfacePropertyDef(doc: ddoc.InterfacePropertyDef): string {
+    let res = `${escape(doc.name)}${doc.optional ? "?" : ""}`;
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    if (doc.jsDoc !== null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    }
+
+    return res;
+  }
+
+  renderJSDoc(doc: string): string {
+    const summary_end = doc.indexOf("\n\n");
+    const [summary, remainder] = summary_end !== -1
+      ? [doc.slice(0, summary_end), doc.slice(summary_end)]
+      : [doc, undefined];
+
+    let res = `<pre>${escape(summary)}</pre>`;
+    if (remainder !== undefined) {
+      res = `<details><summary>${res}</summary><pre>${
+        escape(remainder)
+      }</pre></details>`;
+    }
+    return res;
+  }
+
+  renderLiteralCallSignatureDef(
+    doc: ddoc.LiteralCallSignatureDef,
+  ): string {
+    let res = `${this.renderTypeParams(doc.typeParams)}(${
+      this.renderParams(doc.params)
+    })`;
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    return res;
+  }
+
+  renderLiteralMethodDef(doc: ddoc.LiteralMethodDef): string {
+    let res = `${escape(doc.name)}${this.renderTypeParams(doc.typeParams)}(${
+      this.renderParams(doc.params)
+    })`;
+
+    return res;
+  }
+
+  renderLiteralPropertyDef(prop: ddoc.LiteralPropertyDef): string {
+    let res = `${escape(prop.name)}${prop.optional ? "?" : ""}`;
+
+    if (prop.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(prop.tsType)}`;
+    }
+
+    return res;
+  }
+
+  renderNamespaceDef(
+    doc: ddoc.DocNodeNamespace,
+    namespace: string[] = [],
+  ): string {
+    return `<span class=keyword>namespace</span> ${escape(doc.name)} ${
+      this.renderDoc(doc.namespaceDef.elements, [...namespace, doc.name])
+    }`;
+  }
+
+  renderParamDef(doc: ddoc.ParamDef): string {
+    let res = this.renderParamDefKind(doc);
+
+    if (doc.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.tsType)}`;
+    }
+
+    return res;
+  }
+
+  renderObjectPatPropDef(prop: ddoc.ObjectPatPropDef): string {
+    switch (prop.kind) {
+      case "assign":
+        // TODO Does not display assigned value
+        return escape(prop.key);
+      case "keyValue":
+        return `${escape(prop.key)}: ${this.renderParamDef(prop.value)}`;
+      case "rest":
+        return `...${this.renderParamDef(prop.arg)}`;
+    }
+  }
+
+  renderParamDefKind(doc: ddoc.ParamDef): string {
+    switch (doc.kind) {
+      case "array":
+        return `[${
+          doc.elements.map((e) => e === null ? "" : this.renderParamDef(e))
+            .join(", ")
+        }]${doc.optional ? "?" : ""}`;
+      case "assign":
+        // TODO Does not display assigned value
+        return this.renderParamDef(doc.left);
+      case "identifier":
+        return escape(doc.name) + (doc.optional ? "?" : "");
+      case "object":
+        return `{${
+          doc.props.map((p) => this.renderObjectPatPropDef(p)).join(", ")
+        }}${doc.optional ? "?" : ""}`;
+      case "rest":
+        return `...${this.renderParamDef(doc.arg)}`;
+      default:
+        return unimplemented((doc as { kind: string }).kind);
+    }
+  }
+
+  renderParams(params: ddoc.ParamDef[]): string {
+    return params.map((p) => this.renderParamDef(p)).join(", ");
+  }
+
+  renderTypeAliasDef(
+    doc: ddoc.DocNodeTypeAlias,
+    namespace?: string[],
+  ): string {
+    return `<span class=keyword>type</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    }${this.renderTypeParams(doc.typeAliasDef.typeParams)} = ${
+      this.renderTsTypeDef(doc.typeAliasDef.tsType)
+    }`;
+  }
+
+  renderTsTypeDef(type_def: ddoc.TsTypeDef): string {
+    switch (type_def.kind) {
+      case "array":
+        return this.renderTsTypeDef(type_def.array) + "[]";
+      case "conditional": {
+        const ct = type_def.conditionalType;
+        return `${
+          this.renderTsTypeDef(ct.checkType)
+        } <span class=keyword>extends</span> ${
+          this.renderTsTypeDef(ct.extendsType)
+        } ? ${this.renderTsTypeDef(ct.trueType)} : ${
+          this.renderTsTypeDef(ct.falseType)
+        }`;
+      }
+      case "fnOrConstructor": {
+        const fn = type_def.fnOrConstructor;
+        return `${
+          fn.constructor ? "<span class=keyword>constructor</span>" : ""
+        }${this.renderTypeParams(fn.typeParams)}(${
+          this.renderParams(fn.params)
+        }) => ${this.renderTsTypeDef(fn.tsType)}`;
+      }
+      case "indexedAccess": {
+        const ia = type_def.indexedAccess;
+        return `${ia.readonly ? "<span class=keyword>readonly</span> " : ""}${
+          this.renderTsTypeDef(ia.objType)
+        }[${this.renderTsTypeDef(ia.indexType)}]`;
+      }
+      case "intersection":
+        return type_def.intersection.map((t) => this.renderTsTypeDef(t)).join(
+          " & ",
+        );
+      case "keyword":
+        return `<span class=exkeyword>${escape(type_def.keyword)}</span>`;
+      case "literal": {
+        const lit = type_def.literal;
+        return `<span class=literal>${
+          lit.kind === "boolean"
+            ? String(lit.boolean)
+            : lit.kind === "number"
+            ? String(lit.number)
+            : lit.kind === "string"
+            ? `"${escape(lit.string)}"`
+            : unreachable()
+        }</span>`;
+      }
+      case "optional":
+        return `${this.renderTsTypeDef(type_def.optional)}?`;
+      case "parenthesized":
+        return `(${this.renderTsTypeDef(type_def.parenthesized)})`;
+      case "rest":
+        return `...${this.renderTsTypeDef(type_def.rest)}`;
+      case "this":
+        assert(type_def.this);
+        return `<span class=keyword>this</span>`;
+      case "tuple":
+        return `[${
+          type_def.tuple.map((t) => this.renderTsTypeDef(t)).join(", ")
+        }]`;
+      case "typeLiteral":
+        return this.renderTypeLiteral(type_def.typeLiteral);
+      case "typeOperator":
+        return `<span class=keyword>${
+          escape(type_def.typeOperator.operator)
+        }</span> ${this.renderTsTypeDef(type_def.typeOperator.tsType)}`;
+      case "typeQuery":
+        return `<span class=typeref>${escape(type_def.typeQuery)}</span>`;
+      case "typeRef": {
+        const tr = type_def.typeRef;
+        return `<span class=typeref>${escape(tr.typeName)}</span>${
+          tr.typeParams !== null
+            ? `&lt${
+              tr.typeParams.map((t) => this.renderTsTypeDef(t)).join(
+                ", ",
+              )
+            }&gt`
+            : ""
+        }`;
+      }
+      case "union":
+        return type_def.union.map((t) => this.renderTsTypeDef(t)).join(" | ");
+      default:
+        return unimplemented((type_def as { kind: string }).kind);
+    }
+  }
+
+  renderTypeLiteral(lit: ddoc.TsTypeLiteralDef): string {
+    return `{ ${
+      [
+        lit.properties.map((p) => this.renderLiteralPropertyDef(p)),
+        lit.callSignatures.map((c) => this.renderLiteralCallSignatureDef(c)),
+        lit.methods.map((m) => this.renderLiteralMethodDef(m)),
+        lit.indexSignatures.map((i) => this.renderIndexSignatureDef(i)),
+        "",
+      ].flat().join("; ")
+    } }`;
+  }
+
+  renderTypeParams(type_params: ddoc.TsTypeParamDef[]): string {
+    return type_params.length !== 0
+      ? `&lt${type_params.map((t) => this.renderTypeParamDef(t)).join(", ")}&gt`
+      : "";
+  }
+
+  renderTypeParamDef(doc: ddoc.TsTypeParamDef): string {
+    let res = `<span class=typeref>${escape(doc.name)}</span>`;
+
+    if (doc.constraint !== undefined) {
+      res += ` <span class=keyword>extends</span> ${
+        this.renderTsTypeDef(doc.constraint)
+      }`;
+    }
+    if (doc.default !== undefined) {
+      res += ` = ${this.renderTsTypeDef(doc.default)}`;
+    }
+
+    return res;
+  }
+
+  renderVariableDef(
+    doc: ddoc.DocNodeVariable,
+    namespace?: string[],
+  ): string {
+    let res = `<span class=keyword>${escape(doc.variableDef.kind)}</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    }`;
+
+    if (doc.variableDef.tsType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.variableDef.tsType)}`;
+    }
+
+    return res;
+  }
+}
+
+/*
+ * Request handling
+ */
+
+const doc_prefix = "/doc/";
+async function handleDoc(req: ServerRequest): Promise<void> {
+  assert(req.url.startsWith(doc_prefix));
+  const doc_url = decodeURIComponent(req.url.substr(doc_prefix.length));
+
+  let doc;
+  try {
+    doc = await new DocRenderer().render(
+      doc_url.length > 0 ? doc_url : undefined,
+    );
+  } catch (err) {
+    if (err.stderr !== undefined) {
+      handleFail(req, 500, escape(err.stderr));
+    } else {
+      handleFail(req, 500, "Documentation generation failed");
+    }
+    return;
+  }
+
+  await req.respond({
+    status: 200,
+    body: doc,
+  });
+}
+
+async function handleFail(
+  req: ServerRequest,
+  status: number,
+  message: string,
+): Promise<void> {
+  const rend = new DocRenderer();
+  await req.respond({
+    status,
+    body: `<!DOCTYPE html>
+    <html>
+      <head>
+        ${rend.renderHead("Docuraptor Error")}
+      </head>
+      <body>
+        ${rend.renderHeader("An error occured")}
+        <main>
+          <pre>
+            ${escape(message)}
+          </pre>
+        </main>
+      </body>
+    </html>`,
+  });
+}
+
+const file_url = new URL("file:/");
+let deps_url: URL | undefined = undefined;
+async function handleIndex(req: ServerRequest): Promise<void> {
+  const known_documentation = [];
+
+  if (deps_url !== undefined) {
+    for await (const protocol of Deno.readDir(deps_url.pathname)) {
+      if (!protocol.isDirectory) {
+        continue;
+      }
+      const path_url = new URL(protocol.name + "/", deps_url);
+      for await (const host of Deno.readDir(path_url.pathname)) {
+        if (!host.isDirectory) {
+          continue;
+        }
+        const host_url = new URL(host.name + "/", path_url);
+        for await (const resource of Deno.readDir(host_url.pathname)) {
+          if (!resource.isFile || !resource.name.endsWith(".metadata.json")) {
+            continue;
+          }
+
+          const resource_url = new URL(resource.name, host_url);
+          const metadata_string = await Deno.readTextFile(
+            resource_url.pathname,
+          );
+          const metadata: { headers: { [_: string]: string }; url: string } =
+            JSON.parse(metadata_string);
+
+          known_documentation.push(metadata.url);
+        }
+      }
+    }
+  } else {
+    console.warn("Failed to determine cache directory");
+  }
+
+  const rend = new DocRenderer();
+  await req.respond({
+    status: 200,
+    body: `<html>
+      <head>
+        ${rend.renderHead("Docuraptor Index")}
+      </head>
+      <body>
+        ${rend.renderHeader("Docuraptor Index – Locally available modules")}
+        <main>
+          <ul>
+            <li><a href="/doc/">Deno Builtin</a></li>
+            ${
+      known_documentation.sort().map(
+        (url) =>
+          `<li><a href="/doc/${encodeURIComponent(url)}">${
+            escape(url)
+          }</a></li>`,
+      ).join("")
+    }
+          </ul>
+        </main>
+      </body>
+    </html>`,
+  });
+}
 
 const static_prefix = "/static/";
 async function handleStatic(req: ServerRequest): Promise<void> {
@@ -958,6 +1033,19 @@ async function handler(req: ServerRequest): Promise<void> {
   }
 }
 
+/*
+ * Main
+ */
+
+function argCheck(rest: {}, specifier_rest: (string | number)[]): void {
+  if (Object.keys(rest).length > 0 || specifier_rest.length > 0) {
+    console.error(
+      `Superfluous arguments: ${[Object.keys(rest), specifier_rest].flat()}`,
+    );
+    Deno.exit(1);
+  }
+}
+
 function open(s: string): void {
   Deno.run({
     cmd: Deno.build.os === "windows"
@@ -974,22 +1062,24 @@ function open(s: string): void {
 }
 
 if (import.meta.main) {
-  const { help, hostname, port, "skip-browser": skip, "_": specifier } =
-    argsParse(Deno.args, {
-      default: {
-        hostname: "127.0.0.1",
-        port: 8709,
-      },
-      boolean: ["help"],
-      string: ["hostname"],
-    });
+  const usage_string = `
+Docuraptor (${import.meta.url})
 
-  if (help || specifier.length > 1) {
-    console.log(
-      `USAGE: ${
-        import.meta.url
-      } [--port=<port>] [--hostname=<hostname>] [--skip-browser] [url]`,
-    );
+Start documentation server:
+$ docuraptor [--port=<port>] [--hostname=<hostname>] [--skip-browser] [--builtin | <url>]
+
+When the module specifier is omitted the documentation index is opened instead.
+
+Generate HTML documentation:
+$ docuraptor --generate [--builtin] <url>...
+    `.trim();
+
+  const { help, generate } = argsParse(Deno.args, {
+    boolean: ["help", "generate"],
+  });
+
+  if (help) {
+    console.log(usage_string);
     Deno.exit(0);
   }
 
@@ -1008,18 +1098,85 @@ if (import.meta.main) {
     deps_url = new URL(info.modulesCache + "/", file_url);
   }
 
-  let url = `http://${hostname}:${port}/`;
-  if (specifier.length > 0) {
-    url += `doc/${encodeURIComponent(specifier[0])}`;
-  }
+  if (generate) {
+    const { builtin, generate, "_": specifiers, ...rest } = argsParse(
+      Deno.args,
+      {
+        boolean: ["builtin", "generate"],
+      },
+    );
+    argCheck(rest, []);
 
-  console.info("Starting server...", url);
+    const targets: [string, string | undefined][] = specifiers.map((
+      s,
+    ) => [encodeURIComponent(s), s.toString()]);
 
-  if (!skip) {
-    open(url);
-  }
+    if (builtin) {
+      targets.push(["Deno", undefined]);
+    }
 
-  for await (const req of serve({ hostname, port })) {
-    await handler(req);
+    const encoder = new TextEncoder();
+    for (const [name, specifier] of targets) {
+      let f;
+      try {
+        f = await Deno.open(`${name}.html`, {
+          create: true,
+          truncate: true,
+          write: true,
+        });
+        await Deno.writeAll(
+          f,
+          encoder.encode(
+            await new DocRenderer({ static: true }).render(specifier),
+          ),
+        );
+      } finally {
+        f?.close();
+      }
+    }
+  } else {
+    const {
+      builtin,
+      hostname,
+      port,
+      "skip-browser": skip,
+      "_": specifier,
+      ...rest
+    } = argsParse(Deno.args, {
+      default: {
+        hostname: "127.0.0.1",
+        port: 8709,
+      },
+      boolean: ["builtin", "skip-browser"],
+      string: ["hostname"],
+    });
+    argCheck(rest, specifier.slice(1));
+
+    if (typeof port !== "number") {
+      console.error("Port must be a number");
+      Deno.exit(1);
+    }
+
+    if (builtin && specifier.length > 0) {
+      console.error("--builtin and <url> are mutually exclusive");
+      Deno.exit(1);
+    }
+
+    let url = `http://${hostname}:${port}/`;
+    if (builtin) {
+      url += "doc/";
+    } else if (specifier.length > 0) {
+      url += `doc/${encodeURIComponent(specifier[0])}`;
+    }
+
+    console.info("Starting server...", url);
+
+    if (!skip) {
+      open(url);
+    }
+
+    for await (const req of serve({ hostname, port })) {
+      await handler(req);
+    }
   }
 }
