@@ -23,6 +23,12 @@ const assets: { [name: string]: Asset } = {
         color: #111;
       }
 
+      div.metadata {
+        border: 0.1em solid gray;
+        margin: 1em 0;
+        padding: 1ch;
+      }
+
       img.logo {
         width: 5ch;
       }
@@ -31,6 +37,7 @@ const assets: { [name: string]: Asset } = {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
+        margin-bottom: 0.5em;
       }
 
       header * {
@@ -59,9 +66,28 @@ const assets: { [name: string]: Asset } = {
         font-size: 0.9em;
       }
 
+      ol {
+        margin: 0;
+      }
+
       main {
         font-family: monospace;
         font-size: 16px;
+      }
+
+      nav.sidebar {
+        background: #eee;
+        border: 0.1em solid gray;
+
+        box-sizing: border-box;
+        height: 100vh;
+        min-width: 25vw;
+        overflow: auto;
+
+        position: sticky;
+        top: 0;
+
+        z-index: 5;
       }
 
       ol.noborder li {
@@ -88,6 +114,7 @@ const assets: { [name: string]: Asset } = {
       }
 
       span.identifier {
+        color: black;
         font-weight: bold;
       }
 
@@ -112,6 +139,11 @@ const assets: { [name: string]: Asset } = {
 
       .fill {
         flex-grow: 1;
+      }
+
+      .hor-flex {
+        display: flex;
+        flex-direction: row;
       }
 
       .inline {
@@ -148,8 +180,16 @@ const assets: { [name: string]: Asset } = {
           background: #222;
         }
 
+        nav.sidebar {
+          background: #222;
+        }
+
         span.exkeyword {
           color: #00c1c1;
+        }
+
+        span.identifier {
+          color: white;
         }
 
         span.keyword {
@@ -163,6 +203,16 @@ const assets: { [name: string]: Asset } = {
         span.typeref {
           color: deepskyblue;
         }
+      }
+
+      span a:link {
+        color: inherit;
+        text-decoration: inherit;
+      }
+
+      span a:visited {
+        color: inherit;
+        text-decoration: inherit;
       }
     `,
     mimetype: "text/css",
@@ -287,10 +337,21 @@ class DocRenderer {
         "Documentation for " + (specifier ? escape(specifier) : "Deno"),
       )
     }
-          <main>
-            ${info_j ? this.renderInfo(info_j) : ""}
-            ${this.renderDoc(doc_j)}
-          </main>
+          ${
+      info_j
+        ? `<div class=metadata>
+              ${this.renderInfo(info_j)}
+            </div>`
+        : ""
+    }
+          <div class=hor-flex>
+            <nav class=sidebar>
+              ${this.renderSidebar(doc_j)}
+            </nav>
+            <main>
+              ${this.renderDoc(doc_j)}
+            </main>
+          </div>
         </body>
       </html>`;
   }
@@ -519,8 +580,13 @@ class DocRenderer {
   }
 
   renderIdentifier(identifier: string, namespace?: string[]): string {
-    return escape(namespace ? namespace.join(".") + "." : "") +
-      `<span class=identifier>${escape(identifier)}</span>`;
+    const namespace_html = escape(namespace ? namespace.join(".") + "." : "");
+    const ident_id = `ident_${namespace_html}${escape(identifier)}`;
+
+    return namespace_html +
+      `<span id="${ident_id}" class=identifier><a href="#${ident_id}">${
+        escape(identifier)
+      }</a></span>`;
   }
 
   renderIndexSignatureDef(
@@ -722,10 +788,12 @@ class DocRenderer {
 
   renderNamespaceDef(
     doc: ddoc.DocNodeNamespace,
-    namespace: string[] = [],
+    namespace?: string[],
   ): string {
-    return `<span class=keyword>namespace</span> ${escape(doc.name)} ${
-      this.renderDoc(doc.namespaceDef.elements, [...namespace, doc.name])
+    return `<span class=keyword>namespace</span> ${
+      this.renderIdentifier(doc.name, namespace)
+    } ${
+      this.renderDoc(doc.namespaceDef.elements, [...namespace ?? [], doc.name])
     }`;
   }
 
@@ -776,6 +844,27 @@ class DocRenderer {
 
   renderParams(params: ddoc.ParamDef[]): string {
     return params.map((p) => this.renderParamDef(p)).join(", ");
+  }
+
+  renderSidebar(doc: ddoc.DocNode[]): string {
+    function collectIdents(
+      doc: ddoc.DocNode[],
+      namespace?: string[],
+    ): string[] {
+      return doc.flatMap((d) =>
+        d.kind === "namespace"
+          ? collectIdents(d.namespaceDef.elements, [...namespace ?? [], d.name])
+          : escape([...namespace ?? [], d.name].join("."))
+      );
+    }
+
+    return `<ol class="nomarks noborder">
+      ${
+      collectIdents(doc).sort((a, b) => a.localeCompare(b)).map((n) =>
+        `<li><a href="#ident_${escape(n)}">${escape(n)}</a></li>`
+      ).join("")
+    }
+    </ol>`;
   }
 
   renderTypeAliasDef(
