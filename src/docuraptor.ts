@@ -259,12 +259,14 @@ function escape(s: string): string {
 
 async function getDenoData(
   specifier?: string,
+  { private: priv }: { private?: boolean } = {},
 ): Promise<{ doc: ddoc.DocNode[]; info: info.FileInfo | null }> {
   const proc = Deno.run({
     cmd: [
       "deno",
       "doc",
       "--json",
+      ...(priv ? ["--private"] : []),
       specifier ?? "--builtin",
     ],
     stdin: "null",
@@ -328,6 +330,7 @@ function unimplemented(what: string | undefined | null): string {
  */
 
 interface DocRendererOptions {
+  private?: boolean;
   static?: boolean;
 }
 
@@ -339,7 +342,10 @@ class DocRenderer {
   }
 
   async render(specifier?: string): Promise<string> {
-    const { doc: doc_j, info: info_j } = await getDenoData(specifier);
+    const { doc: doc_j, info: info_j } = await getDenoData(
+      specifier,
+      { private: this.#options.private },
+    );
     return `<!DOCTYPE html>
       <html>
         <head>
@@ -349,6 +355,7 @@ class DocRenderer {
           ${
       this.renderHeader(
         "Documentation for " + (specifier ? escape(specifier) : "Deno"),
+        { private_toggle: true },
       )
     }
           ${
@@ -412,7 +419,9 @@ class DocRenderer {
     if (cd.properties.length > 0) {
       res += `<hr><ol class=nomarks>
       ${
-        cd.properties.filter((p) => p.accessibility !== "private")
+        cd.properties.filter((p) =>
+          this.#options.private || p.accessibility !== "private"
+        )
           .map((p) => `<li>${this.renderClassPropertyDef(p)}</li>`).join("")
       }
     </ol>`;
@@ -421,7 +430,9 @@ class DocRenderer {
     if (cd.constructors.length > 0) {
       res += `<hr><ol class=nomarks>
       ${
-        cd.constructors.filter((m) => m.accessibility !== "private")
+        cd.constructors.filter((m) =>
+          this.#options.private || m.accessibility !== "private"
+        )
           .map((p) => `<li>${this.renderClassConstructorDef(p)}</li>`).join("")
       }
     </ol>`;
@@ -430,7 +441,9 @@ class DocRenderer {
     if (cd.methods.length > 0) {
       res += `<hr><ol class=nomarks>
       ${
-        cd.methods.filter((m) => m.accessibility !== "private")
+        cd.methods.filter((m) =>
+          this.#options.private || m.accessibility !== "private"
+        )
           .map((p) => `<li>${this.renderClassMethodDef(p)}</li>`).join("")
       }
     </ol>`;
@@ -576,7 +589,10 @@ class DocRenderer {
     );
   }
 
-  renderHeader(title: string): string {
+  renderHeader(
+    title: string,
+    { private_toggle = false }: { private_toggle?: boolean } = {},
+  ): string {
     return `<header>
       ${
       this.#options.static
@@ -587,6 +603,13 @@ class DocRenderer {
       ${
       this.#options.static ? "" : `
           <div class=nowrap>
+            ${
+        private_toggle
+          ? this.#options.private
+            ? '<a href="?">View Public</a>'
+            : '<a href="?private=1">View Private</a>'
+          : ""
+      }
             <label>Module URL: <input id=url type=url></label>
             <input id=openDoc type=button value=Go>
           </div>
@@ -1036,11 +1059,22 @@ class DocRenderer {
 const doc_prefix = "/doc/";
 async function handleDoc(req: ServerRequest): Promise<void> {
   assert(req.url.startsWith(doc_prefix));
-  const doc_url = decodeURIComponent(req.url.substr(doc_prefix.length));
+
+  const args = req.url.substr(doc_prefix.length);
+  const search_index = args.indexOf("?");
+
+  const doc_url = decodeURIComponent(
+    search_index === -1 ? args : args.slice(0, search_index),
+  );
+  const search = new URLSearchParams(
+    search_index === -1 ? "" : args.slice(search_index),
+  );
 
   let doc;
   try {
-    doc = await new DocRenderer().render(
+    doc = await new DocRenderer({
+      private: !!search.get("private"),
+    }).render(
       doc_url.length > 0 ? doc_url : undefined,
     );
   } catch (err) {
@@ -1214,12 +1248,12 @@ if (import.meta.main) {
 Docuraptor (${import.meta.url})
 
 Start documentation server:
-$ docuraptor [--port=<port>] [--hostname=<hostname>] [--skip-browser] [--builtin | <url>]
+$ docuraptor [--port=<port>] [--hostname=<hostname>] [--skip-browser] [--private] [--builtin | <url>]
 
 When the module specifier is omitted the documentation index is opened instead.
 
 Generate HTML documentation:
-$ docuraptor --generate [--builtin] <url>...
+$ docuraptor --generate [--private] [--builtin] <url>...
     `.trim();
 
   const { help, generate } = argsParse(Deno.args, {
@@ -1247,12 +1281,13 @@ $ docuraptor --generate [--builtin] <url>...
   }
 
   if (generate) {
-    const { builtin, generate, "_": specifiers, ...rest } = argsParse(
-      Deno.args,
-      {
-        boolean: ["builtin", "generate"],
-      },
-    );
+    const { builtin, generate, private: priv, "_": specifiers, ...rest } =
+      argsParse(
+        Deno.args,
+        {
+          boolean: ["builtin", "generate", "private"],
+        },
+      );
     argCheck(rest, []);
 
     const targets: [string, string | undefined][] = specifiers.map((
@@ -1275,7 +1310,9 @@ $ docuraptor --generate [--builtin] <url>...
         await Deno.writeAll(
           f,
           encoder.encode(
-            await new DocRenderer({ static: true }).render(specifier),
+            await new DocRenderer({ static: true, private: priv }).render(
+              specifier,
+            ),
           ),
         );
       } finally {
@@ -1287,6 +1324,7 @@ $ docuraptor --generate [--builtin] <url>...
       builtin,
       hostname,
       port,
+      private: priv,
       "skip-browser": skip,
       "_": specifier,
       ...rest
@@ -1295,7 +1333,7 @@ $ docuraptor --generate [--builtin] <url>...
         hostname: "127.0.0.1",
         port: 8709,
       },
-      boolean: ["builtin", "skip-browser"],
+      boolean: ["builtin", "private", "skip-browser"],
       string: ["hostname"],
     });
     argCheck(rest, specifier.slice(1));
@@ -1310,11 +1348,19 @@ $ docuraptor --generate [--builtin] <url>...
       Deno.exit(1);
     }
 
+    if (priv && specifier.length === 0) {
+      console.error("Must provide a specifier with --private");
+      Deno.exit(1);
+    }
+
     let url = `http://${hostname}:${port}/`;
     if (builtin) {
       url += "doc/";
     } else if (specifier.length > 0) {
       url += `doc/${encodeURIComponent(specifier[0])}`;
+    }
+    if (priv) {
+      url += "?private=1";
     }
 
     console.info("Starting server...", url);
