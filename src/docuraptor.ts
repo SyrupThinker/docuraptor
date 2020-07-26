@@ -478,6 +478,10 @@ class DocRenderer {
       this.renderTypeParams(doc.functionDef.typeParams)
     }(${this.renderParams(doc.functionDef.params)})`;
 
+    if (doc.functionDef.returnType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.functionDef.returnType)}`;
+    }
+
     if (doc.jsDoc !== null) {
       res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
     }
@@ -757,6 +761,10 @@ class DocRenderer {
       this.renderTypeParams(doc.typeParams)
     }(${this.renderParams(doc.params)})`;
 
+    if (doc.returnType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.returnType)}`;
+    }
+
     if (doc.jsDoc !== null) {
       res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
     }
@@ -811,6 +819,10 @@ class DocRenderer {
     let res = `${escape(doc.name)}${this.renderTypeParams(doc.typeParams)}(${
       this.renderParams(doc.params)
     })`;
+
+    if (doc.returnType !== null) {
+      res += `: ${this.renderTsTypeDef(doc.returnType)}`;
+    }
 
     return res;
   }
