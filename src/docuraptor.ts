@@ -251,9 +251,9 @@ const assets: { [name: string]: Asset } = {
 const decoder = new TextDecoder();
 
 function escape(s: string): string {
-  return s.replaceAll("&", "&amp").replaceAll("<", "&lt").replaceAll(
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
     ">",
-    "&gt",
+    "&gt;",
   );
 }
 
@@ -403,9 +403,9 @@ class DocRenderer {
         escape(cd.extends)
       }</span>${
         cd.superTypeParams.length > 0
-          ? `&lt${
+          ? `&lt;${
             cd.superTypeParams.map((t) => this.renderTsTypeDef(t)).join(", ")
-          }&gt`
+          }&gt;`
           : ""
       }`;
     }
@@ -959,7 +959,7 @@ class DocRenderer {
       }
       case "intersection":
         return type_def.intersection.map((t) => this.renderTsTypeDef(t)).join(
-          " & ",
+          " &amp; ",
         );
       case "keyword":
         return `<span class=exkeyword>${escape(type_def.keyword)}</span>`;
@@ -1000,11 +1000,11 @@ class DocRenderer {
         const tr = type_def.typeRef;
         return `<span class=typeref>${escape(tr.typeName)}</span>${
           tr.typeParams !== null
-            ? `&lt${
+            ? `&lt;${
               tr.typeParams.map((t) => this.renderTsTypeDef(t)).join(
                 ", ",
               )
-            }&gt`
+            }&gt;`
             : ""
         }`;
       }
@@ -1024,12 +1024,14 @@ class DocRenderer {
         lit.indexSignatures.map((i) => this.renderIndexSignatureDef(i)),
         "",
       ].flat().join("; ")
-    } }`;
+    }}`;
   }
 
   renderTypeParams(type_params: ddoc.TsTypeParamDef[]): string {
     return type_params.length !== 0
-      ? `&lt${type_params.map((t) => this.renderTypeParamDef(t)).join(", ")}&gt`
+      ? `&lt;${
+        type_params.map((t) => this.renderTypeParamDef(t)).join(", ")
+      }&gt;`
       : "";
   }
 
