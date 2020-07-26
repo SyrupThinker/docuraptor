@@ -23,6 +23,10 @@ const assets: { [name: string]: Asset } = {
         color: #111;
       }
 
+      body {
+        margin: 0;
+      }
+
       div.metadata {
         border: 0.1em solid gray;
         margin: 1em 0;
@@ -35,12 +39,13 @@ const assets: { [name: string]: Asset } = {
 
       header {
         display: flex;
-        align-items: center;
         flex-wrap: wrap;
-        margin-bottom: 0.5em;
+        justify-content: center;
+        margin: 0.5em;
       }
 
       header * {
+        align-self: center;
         margin: 0 0.5ch;
       }
 
@@ -71,6 +76,8 @@ const assets: { [name: string]: Asset } = {
       }
 
       main {
+        flex-grow: 1;
+
         font-family: monospace;
         font-size: 16px;
       }
@@ -80,8 +87,10 @@ const assets: { [name: string]: Asset } = {
         border: 0.1em solid gray;
 
         box-sizing: border-box;
+        flex-basis: 25%;
+        flex-shrink: 0;
         height: 100vh;
-        min-width: 25vw;
+        max-width: 30ch;
         overflow: auto;
 
         position: sticky;
@@ -148,6 +157,11 @@ const assets: { [name: string]: Asset } = {
 
       .inline {
         display: inline-block;
+      }
+
+      .nowrap {
+        display: inline-flex;
+        flex-wrap: nowrap;
       }
 
       .padding {
@@ -572,8 +586,10 @@ class DocRenderer {
       <h3 class="fill inline">${title}</h3>
       ${
       this.#options.static ? "" : `
-          <label>Module URL: <input id=url type=url></label>
-          <input id=openDoc type=button value=Go>
+          <div class=nowrap>
+            <label>Module URL: <input id=url type=url></label>
+            <input id=openDoc type=button value=Go>
+          </div>
         `
     }
     </header>`;
