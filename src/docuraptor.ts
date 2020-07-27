@@ -212,6 +212,10 @@ const assets: { [name: string]: Asset } = {
         display: inline-block;
       }
 
+      .monospace {
+        font-family: monospace;
+      }
+
       .notextwrap {
         white-space: nowrap;
       }
@@ -253,6 +257,7 @@ const assets: { [name: string]: Asset } = {
 
         nav.sidebar {
           background: #222;
+          font-family: sans;
         }
 
         span.exkeyword {
@@ -723,7 +728,7 @@ class DocRenderer {
       <summary class=padding>
         Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive.
       </summary>
-      <ol class="nomarks indent">
+      <ol class="nomarks indent monospace">
         ${
       Array.from(unique_deps.values()).sort().map((u) =>
         `<li class=link><span class="iconize icon-${
