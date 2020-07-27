@@ -902,11 +902,14 @@ class DocRenderer {
       doc: ddoc.DocNode[],
       namespace?: string[],
     ): string[] {
-      return doc.flatMap((d) =>
-        d.kind === "namespace"
+      return doc.flatMap((
+        d,
+      ) => [
+        escape([...namespace ?? [], d.name].join(".")),
+        ...(d.kind === "namespace"
           ? collectIdents(d.namespaceDef.elements, [...namespace ?? [], d.name])
-          : escape([...namespace ?? [], d.name].join("."))
-      );
+          : []),
+      ]);
     }
 
     return `<ol class="nomarks noborder">
