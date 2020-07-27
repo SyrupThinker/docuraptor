@@ -122,6 +122,59 @@ const assets: { [name: string]: Asset } = {
         color: #005959;
       }
 
+      span.iconize {
+        display: inline-block;
+        height: 1em;
+        margin: 0.2em;
+        padding: 0.1em;
+        width: 1em;
+
+        font-family: monospace;
+        font-weight: bold;
+        line-height: 1em;
+        text-align: center;
+        vertical-align: middle;
+
+        color: black;
+        background: red;
+      }
+
+      span.icon-class {
+        background: #a8e;
+      }
+
+      span.icon-enum {
+        background: #6af;
+      }
+
+      span.icon-function {
+        background: #fd6;
+      }
+
+      span.icon-green {
+        background: lightgreen;
+      }
+
+      span.icon-interface {
+        background: #d8d;
+      }
+
+      span.icon-namespace {
+        background: silver;
+      }
+
+      span.icon-orange {
+        background: orange;
+      }
+
+      span.icon-typeAlias {
+        background: #7bf;
+      }
+
+      span.icon-variable {
+        background: #aea;
+      }
+
       span.identifier {
         color: black;
         font-weight: bold;
@@ -157,6 +210,10 @@ const assets: { [name: string]: Asset } = {
 
       .inline {
         display: inline-block;
+      }
+
+      .notextwrap {
+        white-space: nowrap;
       }
 
       .nowrap {
@@ -648,7 +705,7 @@ class DocRenderer {
 
   renderInfo(info: info.FileInfo): string {
     const unique_deps = new Set(info.deps[1].map((d) => d[0]));
-    const direct = unique_deps.size;
+    const direct_deps = new Set(unique_deps);
 
     function scan_deps(deps: info.FileDeps): void {
       unique_deps.add(deps[0]);
@@ -660,16 +717,20 @@ class DocRenderer {
     scan_deps(info.deps);
     unique_deps.delete(info.deps[0]);
 
-    const transitive = unique_deps.size - direct;
+    const transitive = unique_deps.size - direct_deps.size;
 
     return `<details>
       <summary class=padding>
-        Unique dependencies: ${direct} direct; ${transitive} transitive.
+        Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive.
       </summary>
       <ol class="nomarks indent">
         ${
       Array.from(unique_deps.values()).sort().map((u) =>
-        `<li class=link>${
+        `<li class=link><span class="iconize icon-${
+          direct_deps.has(u)
+            ? "green"
+            : "orange"
+        }">${direct_deps.has(u) ? "D" : "T"}</span> ${
           this.#options.static
             ? escape(u)
             : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
@@ -901,21 +962,25 @@ class DocRenderer {
     function collectIdents(
       doc: ddoc.DocNode[],
       namespace?: string[],
-    ): string[] {
+    ): { kind: ddoc.DocNode["kind"]; ident: string }[] {
       return doc.flatMap((
         d,
       ) => [
-        escape([...namespace ?? [], d.name].join(".")),
+        { kind: d.kind, ident: escape([...namespace ?? [], d.name].join(".")) },
         ...(d.kind === "namespace"
           ? collectIdents(d.namespaceDef.elements, [...namespace ?? [], d.name])
           : []),
       ]);
     }
 
-    return `<ol class="nomarks noborder">
+    return `<ol class="nomarks noborder notextwrap">
       ${
-      collectIdents(doc).sort((a, b) => a.localeCompare(b)).map((n) =>
-        `<li><a href="#ident_${escape(n)}">${escape(n)}</a></li>`
+      collectIdents(doc).sort(({ ident: a }, { ident: b }) =>
+        a.localeCompare(b)
+      ).map(({ kind, ident }) =>
+        `<li><span class="iconize icon-${kind}">${
+          kind[0].toLocaleUpperCase()
+        }</span> <a href="#ident_${escape(ident)}">${escape(ident)}</a></li>`
       ).join("")
     }
     </ol>`;
