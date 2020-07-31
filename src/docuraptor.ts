@@ -79,7 +79,7 @@ const assets: { [name: string]: Asset } = {
         flex-grow: 1;
 
         font-family: monospace;
-        font-size: 16px;
+        font-size: 1.2rem;
       }
 
       nav.sidebar {
