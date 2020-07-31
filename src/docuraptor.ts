@@ -1175,6 +1175,9 @@ async function handleDoc(req: ServerRequest): Promise<void> {
 
   await req.respond({
     status: 200,
+    headers: new Headers({
+      "Content-Type": "text/html",
+    }),
     body: doc,
   });
 }
@@ -1187,6 +1190,9 @@ async function handleFail(
   const rend = new DocRenderer();
   await req.respond({
     status,
+    headers: new Headers({
+      "Content-Type": "text/html",
+    }),
     body: `<!DOCTYPE html>
     <html>
       <head>
@@ -1243,6 +1249,9 @@ async function handleIndex(req: ServerRequest): Promise<void> {
   const rend = new DocRenderer();
   await req.respond({
     status: 200,
+    headers: new Headers({
+      "Content-Type": "text/html",
+    }),
     body: `<html>
       <head>
         ${rend.renderHead("Docuraptor Index")}
