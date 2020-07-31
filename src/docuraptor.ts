@@ -1296,18 +1296,23 @@ async function handleStatic(req: ServerRequest): Promise<void> {
 }
 
 async function handler(req: ServerRequest): Promise<void> {
-  if (!["HEAD", "GET"].includes(req.method)) {
-    handleFail(req, 404, "Invalid method");
-  }
+  try {
+    if (!["HEAD", "GET"].includes(req.method)) {
+      handleFail(req, 404, "Invalid method");
+    }
 
-  if (req.url.startsWith(static_prefix)) {
-    await handleStatic(req);
-  } else if (req.url.startsWith(doc_prefix)) {
-    await handleDoc(req);
-  } else if (req.url === "/") {
-    await handleIndex(req);
-  } else {
-    await handleFail(req, 404, "Malformed path");
+    if (req.url.startsWith(static_prefix)) {
+      await handleStatic(req);
+    } else if (req.url.startsWith(doc_prefix)) {
+      await handleDoc(req);
+    } else if (req.url === "/") {
+      await handleIndex(req);
+    } else {
+      await handleFail(req, 404, "Malformed path");
+    }
+  } finally {
+    req.finalize();
+    req.conn.close();
   }
 }
 
