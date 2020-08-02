@@ -1345,17 +1345,30 @@ function open(s: string): void {
 }
 
 if (import.meta.main) {
-  const usage_string = `
-Docuraptor (${import.meta.url})
+  const usage_string = `Docuraptor (${import.meta.url})
+
+All functions require allow-run and read access to the Deno cache.
+
 
 Start documentation server:
-$ docuraptor [--port=<port>] [--hostname=<hostname>] [--skip-browser] [--private] [--builtin | <url>]
+$ docuraptor [--port=<port>] [--hostname=<hostname>]
+             [--skip-browser] [--private] [--builtin | <url>]
 
-When the module specifier is omitted the documentation index is opened instead.
+Opens the selected module or,
+if the module specifier is omitted, the documentation index.
+Listens on 127.0.0.1:8709 by default.
+
+Additionally requires network access for hostname:port.
+
 
 Generate HTML documentation:
 $ docuraptor --generate [--private] [--builtin] <url>...
-    `.trim();
+
+Writes the documentation of the selected modules
+to the current working directory.
+
+Additionally requires write access to the current working directory.
+`;
 
   const { help, generate } = argsParse(Deno.args, {
     boolean: ["help", "generate"],
