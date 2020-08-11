@@ -299,13 +299,7 @@ const assets: { [name: string]: Asset } = {
     mimetype: "image/svg+xml",
   },
   script: {
-    content: `
-      document.getElementById("openDoc")?.addEventListener("click", () => {
-        const url = document.getElementById("url");
-        const encoded = encodeURIComponent(url.value);
-        window.location.href = "/doc/" + encoded;
-      });
-    `,
+    content: ``,
     mimetype: "application/javascript",
   },
 };
@@ -676,8 +670,10 @@ class DocRenderer {
             : '<a href="?private=1">View Private</a>'
           : ""
       }
-            <label>Module URL: <input id=url type=url></label>
-            <input id=openDoc type=button value=Go>
+            <form action="/form/open">
+              <label>Module URL: <input name=url type=url></label>
+              <input type=submit value=Go>
+            </form>
           </div>
         `
     }
@@ -1276,6 +1272,39 @@ async function handleIndex(req: ServerRequest): Promise<void> {
   });
 }
 
+const form_prefix = "/form/";
+async function handleForm(req: ServerRequest): Promise<void> {
+  assert(req.url.startsWith(form_prefix));
+
+  const args = req.url.substr(form_prefix.length);
+  const search_index = args.indexOf("?");
+  const form_action = args.slice(0, search_index);
+  const search = new URLSearchParams(
+    search_index === -1 ? "" : args.slice(search_index),
+  );
+
+  switch (form_action) {
+    case "open": {
+      console.log([...search.entries()]);
+
+      if (!search.has("url")) {
+        await handleFail(req, 400, "Received invalid request");
+        return;
+      }
+
+      await req.respond({
+        status: 301,
+        headers: new Headers({
+          "Location": `/doc/${search.get("url")!}`,
+        }),
+      });
+      break;
+    }
+    default:
+      await handleFail(req, 400, `Invalid form action ${escape(form_action)}`);
+  }
+}
+
 const static_prefix = "/static/";
 async function handleStatic(req: ServerRequest): Promise<void> {
   assert(req.url.startsWith(static_prefix));
@@ -1305,6 +1334,8 @@ async function handler(req: ServerRequest): Promise<void> {
       await handleStatic(req);
     } else if (req.url.startsWith(doc_prefix)) {
       await handleDoc(req);
+    } else if (req.url.startsWith(form_prefix)) {
+      await handleForm(req);
     } else if (req.url === "/") {
       await handleIndex(req);
     } else {
