@@ -68,13 +68,7 @@ export class DocRenderer {
         { private_toggle: true },
       )
     }
-          ${
-      info_j
-        ? `<div class=metadata>
-              ${this.renderInfo(info_j)}
-            </div>`
-        : ""
-    }
+          ${info_j ? this.renderInfo(info_j) : ""}
           <div class=hor-flex>
             <nav class=sidebar>
               ${this.renderSidebar(doc_j)}
@@ -373,26 +367,30 @@ export class DocRenderer {
 
     const transitive = unique_deps.size - direct_deps.size;
 
-    return `<details>
-      <summary class=padding>
-        Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive.
-      </summary>
-      <ol class="nomarks indent monospace">
+    return unique_deps.size > 0
+      ? `<div class=metadata>
+      <details>
+        <summary class=padding>
+          Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive.
+        </summary>
+        <ol class="nomarks indent monospace">
         ${
-      Array.from(unique_deps.values()).sort().map((u) =>
-        `<li class=link><span class="iconize icon-${
-          direct_deps.has(u)
-            ? "green"
-            : "orange"
-        }">${direct_deps.has(u) ? "D" : "T"}</span> ${
-          this.#options.static
-            ? escape(u)
-            : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
-        }</li>`
-      ).join("")
-    }
-      </ol>
-    </details>`;
+        Array.from(unique_deps.values()).sort().map((u) =>
+          `<li class=link><span class="iconize icon-${
+            direct_deps.has(u)
+              ? "green"
+              : "orange"
+          }">${direct_deps.has(u) ? "D" : "T"}</span> ${
+            this.#options.static
+              ? escape(u)
+              : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
+          }</li>`
+        ).join("")
+      }
+        </ol>
+      </details>
+    </div>`
+      : "";
   }
 
   renderInterfaceCallSignatureDef(
