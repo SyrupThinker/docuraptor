@@ -33,9 +33,11 @@ interface DocRendererOptions {
 
 export class DocRenderer {
   #options: DocRendererOptions;
+  #namespace: string[];
 
-  constructor(options: DocRendererOptions = {}) {
+  constructor(options: DocRendererOptions = {}, namespace: string[] = []) {
     this.#options = options;
+    this.#namespace = namespace;
   }
 
   async render(specifier?: string): Promise<string> {
@@ -86,12 +88,12 @@ export class DocRenderer {
     return res;
   }
 
-  renderClassDef(doc: ddoc.DocNodeClass, namespace?: string[]): string {
+  renderClassDef(doc: ddoc.DocNodeClass): string {
     const cd = doc.classDef;
 
     let res = `<span class=keyword>${
       cd.isAbstract ? "abstract " : ""
-    }class</span> ${this.renderIdentifier(doc.name, namespace)}${
+    }class</span> ${this.renderIdentifier(doc.name)}${
       this.renderTypeParams(cd.typeParams)
     }`;
 
@@ -204,49 +206,47 @@ export class DocRenderer {
     return res;
   }
 
-  renderDoc(doc: ddoc.DocNode[], namespace?: string[]): string {
+  renderDoc(doc: ddoc.DocNode[]): string {
     let final = "<ol class=nomarks>";
     for (const node of doc.sort(sortDocNode)) {
       final += `<li class=${node.kind === "namespace" ? "namespace" : "node"}>${
-        this.renderDocNode(node, namespace)
+        this.renderDocNode(node)
       }</li>`;
     }
     final += "</ol>";
     return final;
   }
 
-  renderDocNode(doc: ddoc.DocNode, namespace?: string[]): string {
+  renderDocNode(doc: ddoc.DocNode): string {
     return `
-    ${this.renderDocNodeKind(doc, namespace)}
+    ${this.renderDocNodeKind(doc)}
     ${doc.jsDoc !== null ? `<hr>${this.renderJSDoc(doc.jsDoc)}` : ""}
   `;
   }
 
-  renderDocNodeKind(doc: ddoc.DocNode, namespace?: string[]): string {
+  renderDocNodeKind(doc: ddoc.DocNode): string {
     switch (doc.kind) {
       case "class":
-        return this.renderClassDef(doc, namespace);
+        return this.renderClassDef(doc);
       case "enum":
-        return this.renderEnumDef(doc, namespace);
+        return this.renderEnumDef(doc);
       case "function":
-        return this.renderFunctionDef(doc, namespace);
+        return this.renderFunctionDef(doc);
       case "interface":
-        return this.renderInterfaceDef(doc, namespace);
+        return this.renderInterfaceDef(doc);
       case "namespace":
-        return this.renderNamespaceDef(doc, namespace);
+        return this.renderNamespaceDef(doc);
       case "typeAlias":
-        return this.renderTypeAliasDef(doc, namespace);
+        return this.renderTypeAliasDef(doc);
       case "variable":
-        return this.renderVariableDef(doc, namespace);
+        return this.renderVariableDef(doc);
       default:
         return unimplemented((doc as { kind: string }).kind);
     }
   }
 
-  renderEnumDef(doc: ddoc.DocNodeEnum, namespace?: string[]): string {
-    return `<span class=keyword>enum</span> ${
-      this.renderIdentifier(doc.name, namespace)
-    }
+  renderEnumDef(doc: ddoc.DocNodeEnum): string {
+    return `<span class=keyword>enum</span> ${this.renderIdentifier(doc.name)}
     <ol class="nomarks noborder">${
       doc.enumDef.members.map((m) => `<li>${escape(m.name)}</li>`).join("")
     }</ol>`;
@@ -254,12 +254,11 @@ export class DocRenderer {
 
   renderFunctionDef(
     doc: ddoc.DocNodeFunction,
-    namespace?: string[],
   ): string {
     let res = `<span class=keyword>${
       doc.functionDef.isAsync ? "async " : ""
     }function${doc.functionDef.isGenerator ? "*" : ""}</span> ${
-      this.renderIdentifier(doc.name, namespace)
+      this.renderIdentifier(doc.name)
     }${this.renderTypeParams(doc.functionDef.typeParams)}(${
       this.renderParams(doc.functionDef.params)
     })`;
@@ -321,8 +320,10 @@ export class DocRenderer {
     </header>`;
   }
 
-  renderIdentifier(identifier: string, namespace?: string[]): string {
-    const namespace_html = escape(namespace ? namespace.join(".") + "." : "");
+  renderIdentifier(identifier: string): string {
+    const namespace_html = escape(
+      this.#namespace.length ? this.#namespace.join(".") + "." : "",
+    );
     const ident_id = `ident_${namespace_html}${escape(identifier)}`;
 
     return namespace_html +
@@ -403,12 +404,11 @@ export class DocRenderer {
 
   renderInterfaceDef(
     doc: ddoc.DocNodeInterface,
-    namespace?: string[],
   ): string {
     const id = doc.interfaceDef;
 
     let res = `<span class=keyword>interface</span> ${
-      this.renderIdentifier(doc.name, namespace)
+      this.renderIdentifier(doc.name)
     }${this.renderTypeParams(id.typeParams)}`;
 
     if (id.extends.length > 0) {
@@ -542,13 +542,14 @@ export class DocRenderer {
 
   renderNamespaceDef(
     doc: ddoc.DocNodeNamespace,
-    namespace?: string[],
   ): string {
-    return `<span class=keyword>namespace</span> ${
-      this.renderIdentifier(doc.name, namespace)
-    } ${
-      this.renderDoc(doc.namespaceDef.elements, [...namespace ?? [], doc.name])
-    }`;
+    let res = `<span class=keyword>namespace</span> ${
+      this.renderIdentifier(doc.name)
+    } `;
+    this.#namespace.push(doc.name);
+    res += this.renderDoc(doc.namespaceDef.elements);
+    this.#namespace.pop();
+    return res;
   }
 
   renderParamDef(doc: ddoc.ParamDef): string {
@@ -630,13 +631,10 @@ export class DocRenderer {
 
   renderTypeAliasDef(
     doc: ddoc.DocNodeTypeAlias,
-    namespace?: string[],
   ): string {
-    return `<span class=keyword>type</span> ${
-      this.renderIdentifier(doc.name, namespace)
-    }${this.renderTypeParams(doc.typeAliasDef.typeParams)} = ${
-      this.renderTsTypeDef(doc.typeAliasDef.tsType)
-    }`;
+    return `<span class=keyword>type</span> ${this.renderIdentifier(doc.name)}${
+      this.renderTypeParams(doc.typeAliasDef.typeParams)
+    } = ${this.renderTsTypeDef(doc.typeAliasDef.tsType)}`;
   }
 
   renderTsTypeDef(type_def: ddoc.TsTypeDef): string {
@@ -762,10 +760,9 @@ export class DocRenderer {
 
   renderVariableDef(
     doc: ddoc.DocNodeVariable,
-    namespace?: string[],
   ): string {
     let res = `<span class=keyword>${escape(doc.variableDef.kind)}</span> ${
-      this.renderIdentifier(doc.name, namespace)
+      this.renderIdentifier(doc.name)
     }`;
 
     if (doc.variableDef.tsType !== null) {
