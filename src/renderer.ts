@@ -14,6 +14,13 @@ export function escape(s: string): string {
   );
 }
 
+function identifierId(namespace: string[], identifier: string): string {
+  const namespace_html = escape(
+    namespace.length ? namespace.join(".") + "." : "",
+  );
+  return `ident_${namespace_html}${escape(identifier)}`;
+}
+
 function sortDocNode(a: ddoc.DocNode, b: ddoc.DocNode): number {
   return a.kind !== b.kind
     ? a.kind.localeCompare(b.kind)
@@ -31,8 +38,10 @@ interface DocRendererOptions {
   static?: boolean;
 }
 
+type IdentMap = Map<string, IdentMap | string>;
 export class DocRenderer {
   #options: DocRendererOptions;
+  #ident_map: IdentMap | undefined = undefined;
   #namespace: string[];
 
   constructor(options: DocRendererOptions = {}, namespace: string[] = []) {
@@ -45,6 +54,8 @@ export class DocRenderer {
       specifier,
       { private: this.#options.private },
     );
+    this.#ident_map = generateIdentMap(doc_j);
+
     return `<!DOCTYPE html>
       <html>
         <head>
@@ -98,9 +109,9 @@ export class DocRenderer {
     }`;
 
     if (cd.extends !== null) {
-      res += ` <span class=keyword>extends</span> <span class=typeref>${
-        escape(cd.extends)
-      }</span>${
+      res += ` <span class=keyword>extends</span> ${
+        this.renderTypeReference(cd.extends)
+      }${
         cd.superTypeParams.length > 0
           ? `&lt;${
             cd.superTypeParams.map((t) => this.renderTsTypeDef(t)).join(", ")
@@ -324,7 +335,7 @@ export class DocRenderer {
     const namespace_html = escape(
       this.#namespace.length ? this.#namespace.join(".") + "." : "",
     );
-    const ident_id = `ident_${namespace_html}${escape(identifier)}`;
+    const ident_id = identifierId(this.#namespace, identifier);
 
     return namespace_html +
       `<span id="${ident_id}" class=identifier><a href="#${ident_id}">${
@@ -412,9 +423,9 @@ export class DocRenderer {
     }${this.renderTypeParams(id.typeParams)}`;
 
     if (id.extends.length > 0) {
-      res += ` <span class=keyword>extends</span> <span class=typeref>${
+      res += ` <span class=keyword>extends</span> ${
         id.extends.map((t) => this.renderTsTypeDef(t)).join(", ")
-      }</span>`;
+      }`;
     }
 
     if (id.properties.length > 0) {
@@ -604,14 +615,18 @@ export class DocRenderer {
   renderSidebar(doc: ddoc.DocNode[]): string {
     function collectIdents(
       doc: ddoc.DocNode[],
-      namespace?: string[],
-    ): { kind: ddoc.DocNode["kind"]; ident: string }[] {
+      namespace: string[] = [],
+    ): { kind: ddoc.DocNode["kind"]; id: string; ident: string }[] {
       return doc.flatMap((
         d,
       ) => [
-        { kind: d.kind, ident: escape([...namespace ?? [], d.name].join(".")) },
+        {
+          kind: d.kind,
+          id: identifierId(namespace, d.name),
+          ident: escape([...namespace, d.name].join(".")),
+        },
         ...(d.kind === "namespace"
-          ? collectIdents(d.namespaceDef.elements, [...namespace ?? [], d.name])
+          ? collectIdents(d.namespaceDef.elements, [...namespace, d.name])
           : []),
       ]);
     }
@@ -620,10 +635,10 @@ export class DocRenderer {
       ${
       collectIdents(doc).sort(({ ident: a }, { ident: b }) =>
         a.localeCompare(b)
-      ).map(({ kind, ident }) =>
+      ).map(({ kind, id, ident }) =>
         `<li><span class="iconize icon-${kind}">${
           kind[0].toLocaleUpperCase()
-        }</span> <a href="#ident_${escape(ident)}">${escape(ident)}</a></li>`
+        }</span> <a href="#${id}">${escape(ident)}</a></li>`
       ).join("")
     }
     </ol>`;
@@ -703,10 +718,10 @@ export class DocRenderer {
           escape(type_def.typeOperator.operator)
         }</span> ${this.renderTsTypeDef(type_def.typeOperator.tsType)}`;
       case "typeQuery":
-        return `<span class=typeref>${escape(type_def.typeQuery)}</span>`;
+        return this.renderTypeReference(type_def.typeQuery);
       case "typeRef": {
         const tr = type_def.typeRef;
-        return `<span class=typeref>${escape(tr.typeName)}</span>${
+        return `${this.renderTypeReference(tr.typeName)}${
           tr.typeParams !== null
             ? `&lt;${
               tr.typeParams.map((t) => this.renderTsTypeDef(t)).join(
@@ -744,7 +759,7 @@ export class DocRenderer {
   }
 
   renderTypeParamDef(doc: ddoc.TsTypeParamDef): string {
-    let res = `<span class=typeref>${escape(doc.name)}</span>`;
+    let res = this.renderTypeReference(doc.name);
 
     if (doc.constraint !== undefined) {
       res += ` <span class=keyword>extends</span> ${
@@ -756,6 +771,19 @@ export class DocRenderer {
     }
 
     return res;
+  }
+
+  renderTypeReference(identifier: string): string {
+    const resolved_type = this.#ident_map
+      ? resolveType(this.#ident_map, this.#namespace, identifier)
+      : null;
+    return `<span class=typeref>${
+      resolved_type === null
+        ? identifier
+        : `<a href="#${
+          identifierId(resolved_type, identifier)
+        }">${identifier}</a>`
+    }</span>`;
   }
 
   renderVariableDef(
@@ -771,4 +799,60 @@ export class DocRenderer {
 
     return res;
   }
+}
+
+function generateIdentMap(docs: ddoc.DocNode[]): IdentMap {
+  const map: IdentMap = new Map();
+  for (const doc of docs) {
+    switch (doc.kind) {
+      case "namespace": {
+        map.set(doc.name, generateIdentMap(doc.namespaceDef.elements));
+        break;
+      }
+      default:
+        map.set(doc.name, doc.name);
+        break;
+    }
+  }
+
+  return map;
+}
+
+// TODO Handle type parameters correctly
+function resolveType(
+  ident_map: IdentMap,
+  namespace: string[],
+  identifier: string,
+): string[] | null {
+  const scopes: (string | IdentMap)[] = [ident_map];
+  const resolved_namespace = Array.from(namespace);
+
+  for (const ns of namespace) {
+    const current_scope = scopes[scopes.length - 1];
+    if (typeof current_scope === "string") {
+      // Cannot decent further to determine scope
+      return null;
+    }
+    if (!current_scope.has(ns)) {
+      // Cannot determine surrounding scope
+      return null;
+    }
+    scopes.push(current_scope.get(ns)!);
+  }
+
+  while (scopes.length > 0) {
+    const current_scope = scopes[scopes.length - 1];
+    if (typeof current_scope !== "string" && current_scope.has(identifier)) {
+      break;
+    }
+    scopes.pop();
+    resolved_namespace.pop();
+  }
+
+  if (scopes.length === 0) {
+    // Identifier not found
+    return null;
+  }
+
+  return resolved_namespace;
 }
