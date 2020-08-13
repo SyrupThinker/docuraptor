@@ -142,6 +142,10 @@ const assets: { [name: string]: Asset } = {
         background: lightgreen;
       }
 
+      span.icon-import {
+        background:white;
+      }
+
       span.icon-interface {
         background: #d8d;
       }

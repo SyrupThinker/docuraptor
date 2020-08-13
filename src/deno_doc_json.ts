@@ -54,6 +54,7 @@ export type DocNode =
   | DocNodeClass
   | DocNodeEnum
   | DocNodeFunction
+  | DocNodeImport
   | DocNodeInterface
   | DocNodeNamespace
   | DocNodeTypeAlias
@@ -78,6 +79,11 @@ export interface DocNodeEnum extends DocNodeBase {
 export interface DocNodeFunction extends DocNodeBase {
   kind: "function";
   functionDef: FunctionDef;
+}
+
+export interface DocNodeImport extends DocNodeBase {
+  kind: "import";
+  importDef: ImportDef;
 }
 
 export interface DocNodeInterface extends DocNodeBase {
@@ -110,6 +116,11 @@ export interface FunctionDef {
   isAsync: boolean;
   isGenerator: boolean;
   typeParams: TsTypeParamDef[];
+}
+
+export interface ImportDef {
+  src: string;
+  imported: string | null;
 }
 
 export interface InterfaceCallSignatureDef {

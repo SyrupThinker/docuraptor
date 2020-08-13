@@ -56,6 +56,10 @@ export class DocRenderer {
     );
     this.#ident_map = generateIdentMap(doc_j);
 
+    const filtered_doc = doc_j.filter((node) =>
+      this.#options.private || node.kind !== "import"
+    );
+
     return `<!DOCTYPE html>
       <html>
         <head>
@@ -71,10 +75,10 @@ export class DocRenderer {
           ${info_j ? this.renderInfo(info_j) : ""}
           <div class=hor-flex>
             <nav class=sidebar>
-              ${this.renderSidebar(doc_j)}
+              ${this.renderSidebar(filtered_doc)}
             </nav>
             <main>
-              ${this.renderDoc(doc_j)}
+              ${this.renderDoc(filtered_doc)}
             </main>
           </div>
         </body>
@@ -237,6 +241,8 @@ export class DocRenderer {
         return this.renderEnumDef(doc);
       case "function":
         return this.renderFunctionDef(doc);
+      case "import":
+        return this.renderImportDef(doc);
       case "interface":
         return this.renderInterfaceDef(doc);
       case "namespace":
@@ -325,16 +331,61 @@ export class DocRenderer {
     </header>`;
   }
 
-  renderIdentifier(identifier: string): string {
+  renderIdentifier(identifier: string, href?: string): string {
     const namespace_html = escape(
       this.#namespace.length ? this.#namespace.join(".") + "." : "",
     );
     const ident_id = identifierId(this.#namespace, identifier);
 
     return namespace_html +
-      `<span id="${ident_id}" class=identifier><a href="#${ident_id}">${
-        escape(identifier)
-      }</a></span>`;
+      `<span id="${ident_id}" class=identifier><a href="${
+        href !== undefined ? escape(href) : `#${ident_id}`
+      }">${escape(identifier)}</a></span>`;
+  }
+
+  renderImportDef(doc: ddoc.DocNodeImport): string {
+    const impd = doc.importDef;
+    const src = `&quot;${escape(impd.src)}&quot;`;
+    const src_doc = this.#options.static
+      ? undefined
+      : `/doc/${encodeURIComponent(impd.src)}`;
+
+    let res = `<span class=keyword>import</span> `;
+
+    if (impd.imported === null) {
+      // Namespaced import
+      res += `* <span class=keyword>as</span> ${
+        this.renderIdentifier(doc.name, src_doc)
+      }`;
+    } else if (impd.imported === "default") {
+      // Default import
+      res += this.renderIdentifier(doc.name, src_doc);
+    } else if (impd.imported !== doc.name) {
+      // Named import
+      res += `{ ${
+        this.renderIdentifier(
+          impd.imported,
+          this.#options.static
+            ? undefined
+            : src_doc + "#" + identifierId([], impd.imported),
+        )
+      } <span class=keyword>as</span> ${this.renderIdentifier(doc.name)} }`;
+    } else {
+      res += `{ ${
+        this.renderIdentifier(
+          doc.name,
+          this.#options.static
+            ? undefined
+            : src_doc + "#" + identifierId([], doc.name),
+        )
+      } }`;
+    }
+
+    res += ` <span class=keyword>from</span> <span class=literal>
+      ${this.#options.static ? src : `<a href="${src_doc}">${src}</a>`}
+    </span>`;
+
+    return res;
   }
 
   renderIndexSignatureDef(
