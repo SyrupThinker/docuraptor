@@ -21,9 +21,20 @@ function identifierId(namespace: string[], identifier: string): string {
   return `ident_${namespace_html}${escape(identifier)}`;
 }
 
+const sort_order: ddoc.DocNode["kind"][] = [
+  "import",
+  "function",
+  "variable",
+  "enum",
+  "class",
+  "interface",
+  "typeAlias",
+  "namespace",
+];
+
 function sortDocNode(a: ddoc.DocNode, b: ddoc.DocNode): number {
   return a.kind !== b.kind
-    ? a.kind.localeCompare(b.kind)
+    ? sort_order.indexOf(a.kind) - sort_order.indexOf(b.kind)
     : a.name.localeCompare(b.name);
 }
 
