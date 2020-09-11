@@ -160,8 +160,6 @@ async function handleForm(req: ServerRequest): Promise<void> {
 
   switch (form_action) {
     case "open": {
-      console.log([...search.entries()]);
-
       if (!search.has("url")) {
         await handleFail(req, 400, "Received invalid request");
         return;
@@ -226,7 +224,10 @@ async function handler(req: ServerRequest): Promise<void> {
  * Main
  */
 
-function argCheck(rest: {}, specifier_rest: (string | number)[]): void {
+function argCheck(
+  rest: Record<string, unknown>,
+  specifier_rest: (string | number)[],
+): void {
   if (Object.keys(rest).length > 0 || specifier_rest.length > 0) {
     console.error(
       `Superfluous arguments: ${[Object.keys(rest), specifier_rest].flat()}`,
