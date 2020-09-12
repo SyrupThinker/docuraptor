@@ -166,6 +166,10 @@ const assets: { [name: string]: Asset } = {
         background: #aea;
       }
 
+      span.icon-white {
+        background: white;
+      }
+
       span.identifier {
         color: black;
         font-weight: bold;

@@ -14,6 +14,18 @@ export function escape(s: string): string {
   );
 }
 
+const size_units = ["B", "KiB", "MiB", "GiB"];
+function humanSize(bytes: number): string {
+  let unit = 0;
+  while (bytes > 1024 && unit < size_units.length - 1) {
+    bytes /= 1024;
+    unit++;
+  }
+
+  let visual = Math.round(bytes * 100) / 100;
+  return `${visual !== bytes ? "~" : ""}${visual}${size_units[unit]}`;
+}
+
 function identifierId(namespace: string[], identifier: string): string {
   const namespace_html = escape(
     namespace.length ? namespace.join(".") + "." : "",
@@ -414,11 +426,21 @@ export class DocRenderer {
   }
 
   renderInfo(info: info.FileInfo): string {
-    const unique_deps = new Set(info.deps.deps.map((d) => d.name));
-    const direct_deps = new Set(unique_deps);
+    const link = (u: info.FileDeps, icon: string, icon_type: string) => {
+      return `<li class=link><span class="iconize icon-${icon_type}">${icon}</span> ${
+        this.#options.static
+          ? escape(u.name)
+          : `<a href="/doc/${encodeURIComponent(u.name)}">${
+            escape(u.name)
+          }</a> <i>${humanSize(u.size)}</i>`
+      }</li>`;
+    };
+
+    const unique_deps = new Map(info.deps.deps.map((d) => [d.name, d]));
+    const direct_deps = new Set(unique_deps.keys());
 
     function scan_deps(deps: info.FileDeps): void {
-      unique_deps.add(deps.name);
+      unique_deps.set(deps.name, deps);
 
       for (const dep of deps.deps) {
         scan_deps(dep);
@@ -433,20 +455,22 @@ export class DocRenderer {
       ? `<div class=metadata>
       <details>
         <summary class=padding>
-          Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive.
+          Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive. <i>${
+        humanSize(info.deps.totalSize ?? 0)
+      }</i>
         </summary>
         <ol class="nomarks indent monospace">
+        ${link(info.deps, "S", "white")}
         ${
-        Array.from(unique_deps.values()).sort().map((u) =>
-          `<li class=link><span class="iconize icon-${
-            direct_deps.has(u)
-              ? "green"
-              : "orange"
-          }">${direct_deps.has(u) ? "D" : "T"}</span> ${
-            this.#options.static
-              ? escape(u)
-              : `<a href="/doc/${encodeURIComponent(u)}">${escape(u)}</a>`
-          }</li>`
+        Array.from(unique_deps.values()).sort((a, b) =>
+          a.name.localeCompare(b.name)
+        ).map((u) =>
+          link(
+            u,
+            ...<[string, string]> (direct_deps.has(u.name)
+              ? ["D", "green"]
+              : ["T", "orange"]),
+          )
         ).join("")
       }
         </ol>
