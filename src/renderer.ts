@@ -439,6 +439,18 @@ export class DocRenderer {
     const unique_deps = new Map(info.deps.deps.map((d) => [d.name, d]));
     const direct_deps = new Set(unique_deps.keys());
 
+    function compare_deps(
+      { name: a_name }: info.FileDeps,
+      { name: b_name }: info.FileDeps,
+    ): number {
+      let a_dir = direct_deps.has(a_name);
+      let b_dir = direct_deps.has(b_name);
+
+      return a_dir === b_dir
+        ? a_name.localeCompare(b_name)
+        : Number(b_dir) - Number(a_dir);
+    }
+
     function scan_deps(deps: info.FileDeps): void {
       unique_deps.set(deps.name, deps);
 
@@ -462,9 +474,7 @@ export class DocRenderer {
         <ol class="nomarks indent monospace">
         ${link(info.deps, "S", "white")}
         ${
-        Array.from(unique_deps.values()).sort((a, b) =>
-          a.name.localeCompare(b.name)
-        ).map((u) =>
+        Array.from(unique_deps.values()).sort(compare_deps).map((u) =>
           link(
             u,
             ...<[string, string]> (direct_deps.has(u.name)
