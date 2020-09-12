@@ -6,7 +6,12 @@ export interface DenoInfo {
   typescriptCache: string;
 }
 
-export type FileDeps = [string, FileDeps[]];
+export interface FileDeps {
+  name: string;
+  size: number;
+  totalSize: number | null;
+  deps: FileDeps[];
+}
 
 export interface FileInfo {
   local: string;

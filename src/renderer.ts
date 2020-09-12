@@ -414,18 +414,18 @@ export class DocRenderer {
   }
 
   renderInfo(info: info.FileInfo): string {
-    const unique_deps = new Set(info.deps[1].map((d) => d[0]));
+    const unique_deps = new Set(info.deps.deps.map((d) => d.name));
     const direct_deps = new Set(unique_deps);
 
     function scan_deps(deps: info.FileDeps): void {
-      unique_deps.add(deps[0]);
+      unique_deps.add(deps.name);
 
-      for (const dep of deps[1]) {
+      for (const dep of deps.deps) {
         scan_deps(dep);
       }
     }
     scan_deps(info.deps);
-    unique_deps.delete(info.deps[0]);
+    unique_deps.delete(info.deps.name);
 
     const transitive = unique_deps.size - direct_deps.size;
 
