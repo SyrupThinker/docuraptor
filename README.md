@@ -14,14 +14,14 @@ It generates and serves HTML documentation for JS/TS modules with the help of [D
 
 ## Installation
 
-`$ deno install --allow-run --allow-read --allow-write --allow-net https://deno.land/x/docuraptor@20200815.0/docuraptor.ts`
+`$ deno install --allow-run --allow-read --allow-write --allow-net https://deno.land/x/docuraptor@20200913.0/docuraptor.ts`
 
 The permissions can be further restricted.
 Read the `--help` documentation for more details.
 
 ## Usage
 
-`$ deno run https://deno.land/x/docuraptor@20200815.0/docuraptor.ts --help`
+`$ deno run https://deno.land/x/docuraptor@20200913.0/docuraptor.ts --help`
 
 ## Screenshot
 
