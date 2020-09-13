@@ -1,5 +1,5 @@
-import * as ddoc from "./deno_doc_json.ts";
-import * as info from "./deno_info_json.ts";
+import type * as ddoc from "./deno_doc_json.ts";
+import type * as info from "./deno_info_json.ts";
 
 const decoder = new TextDecoder();
 

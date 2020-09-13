@@ -1,7 +1,7 @@
 import assets from "./assets.ts";
 import { getDenoData } from "./deno_api.ts";
-import * as ddoc from "./deno_doc_json.ts";
-import * as info from "./deno_info_json.ts";
+import type * as ddoc from "./deno_doc_json.ts";
+import type * as info from "./deno_info_json.ts";
 import {
   assert,
   unreachable,
