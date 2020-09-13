@@ -7,3 +7,4 @@ export {
   serve,
   ServerRequest,
 } from "https://deno.land/std@0.69.0/http/server.ts";
+export { join as pathJoin } from "https://deno.land/std@0.69.0/path/mod.ts";

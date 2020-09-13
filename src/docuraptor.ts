@@ -2,6 +2,7 @@ import assets from "./assets.ts";
 import {
   assert,
   argsParse,
+  pathJoin,
   serve,
   ServerRequest,
   unreachable,
@@ -269,11 +270,12 @@ async function initialize() {
 }
 
 async function mainGenerate() {
-  const { builtin, generate, private: priv, "_": specifiers, ...rest } =
+  const { builtin, generate, out, private: priv, "_": specifiers, ...rest } =
     argsParse(
       Deno.args,
       {
         boolean: ["builtin", "generate", "private"],
+        string: ["out"],
       },
     );
   argCheck(rest, []);
@@ -286,11 +288,18 @@ async function mainGenerate() {
     targets.push(["Deno", undefined]);
   }
 
+  if (out !== undefined) {
+    await Deno.mkdir(out, { recursive: true });
+  }
+
   const encoder = new TextEncoder();
   for (const [name, specifier] of targets) {
+    const filename = `${name}.html`;
+    const filepath = out !== undefined ? pathJoin(out, filename) : filename;
+
     let f;
     try {
-      f = await Deno.open(`${name}.html`, {
+      f = await Deno.open(filepath, {
         create: true,
         truncate: true,
         write: true,
@@ -382,12 +391,14 @@ Additionally requires network access for hostname:port.
 
 
 Generate HTML documentation:
-$ docuraptor --generate [--private] [--builtin] <url>...
+$ docuraptor --generate [--private] [--out=<output dir>]
+             [--builtin] <url>...
 
 Writes the documentation of the selected modules
-to the current working directory.
+to the output directory, defaulting to the
+current working directory.
 
-Additionally requires write access to the current working directory.
+Additionally requires write access to the output directory.
 `;
 
   const { help, generate } = argsParse(Deno.args, {
