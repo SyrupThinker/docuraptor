@@ -251,6 +251,119 @@ function open(s: string): void {
   });
 }
 
+async function initialize() {
+  const p = Deno.run({
+    cmd: ["deno", "info", "--json", "--unstable"],
+    stdin: "null",
+    stdout: "piped",
+    stderr: "null",
+  });
+
+  const info: { modulesCache: string } = JSON.parse(
+    decoder.decode(await p.output()),
+  );
+
+  if ((await p.status()).success) {
+    deps_url = new URL(info.modulesCache + "/", file_url);
+  }
+}
+
+async function mainGenerate() {
+  const { builtin, generate, private: priv, "_": specifiers, ...rest } =
+    argsParse(
+      Deno.args,
+      {
+        boolean: ["builtin", "generate", "private"],
+      },
+    );
+  argCheck(rest, []);
+
+  const targets: [string, string | undefined][] = specifiers.map((
+    s,
+  ) => [encodeURIComponent(s), s.toString()]);
+
+  if (builtin) {
+    targets.push(["Deno", undefined]);
+  }
+
+  const encoder = new TextEncoder();
+  for (const [name, specifier] of targets) {
+    let f;
+    try {
+      f = await Deno.open(`${name}.html`, {
+        create: true,
+        truncate: true,
+        write: true,
+      });
+      await Deno.writeAll(
+        f,
+        encoder.encode(
+          await new DocRenderer({ static: true, private: priv }).render(
+            specifier,
+          ),
+        ),
+      );
+    } finally {
+      f?.close();
+    }
+  }
+}
+
+async function mainServer() {
+  const {
+    builtin,
+    hostname,
+    port,
+    private: priv,
+    "skip-browser": skip,
+    "_": specifier,
+    ...rest
+  } = argsParse(Deno.args, {
+    default: {
+      hostname: "127.0.0.1",
+      port: 8709,
+    },
+    boolean: ["builtin", "private", "skip-browser"],
+    string: ["hostname"],
+  });
+  argCheck(rest, specifier.slice(1));
+
+  if (typeof port !== "number") {
+    console.error("Port must be a number");
+    Deno.exit(1);
+  }
+
+  if (builtin && specifier.length > 0) {
+    console.error("--builtin and <url> are mutually exclusive");
+    Deno.exit(1);
+  }
+
+  if (priv && specifier.length === 0) {
+    console.error("Must provide a specifier with --private");
+    Deno.exit(1);
+  }
+
+  let url = `http://${hostname}:${port}/`;
+  if (builtin) {
+    url += "doc/";
+  } else if (specifier.length > 0) {
+    url += `doc/${encodeURIComponent(specifier[0])}`;
+  }
+  if (priv) {
+    url += "?private=1";
+  }
+
+  console.info("Starting server...", url);
+
+  if (!skip) {
+    open(url);
+  }
+
+  for await (const req of serve({ hostname, port })) {
+    await handler(req);
+  }
+}
+
 if (import.meta.main) {
   const usage_string = `Docuraptor (${import.meta.url})
 
@@ -286,112 +399,11 @@ Additionally requires write access to the current working directory.
     Deno.exit(0);
   }
 
-  const p = Deno.run({
-    cmd: ["deno", "info", "--json", "--unstable"],
-    stdin: "null",
-    stdout: "piped",
-    stderr: "null",
-  });
-
-  const info: { modulesCache: string } = JSON.parse(
-    decoder.decode(await p.output()),
-  );
-
-  if ((await p.status()).success) {
-    deps_url = new URL(info.modulesCache + "/", file_url);
-  }
+  await initialize();
 
   if (generate) {
-    const { builtin, generate, private: priv, "_": specifiers, ...rest } =
-      argsParse(
-        Deno.args,
-        {
-          boolean: ["builtin", "generate", "private"],
-        },
-      );
-    argCheck(rest, []);
-
-    const targets: [string, string | undefined][] = specifiers.map((
-      s,
-    ) => [encodeURIComponent(s), s.toString()]);
-
-    if (builtin) {
-      targets.push(["Deno", undefined]);
-    }
-
-    const encoder = new TextEncoder();
-    for (const [name, specifier] of targets) {
-      let f;
-      try {
-        f = await Deno.open(`${name}.html`, {
-          create: true,
-          truncate: true,
-          write: true,
-        });
-        await Deno.writeAll(
-          f,
-          encoder.encode(
-            await new DocRenderer({ static: true, private: priv }).render(
-              specifier,
-            ),
-          ),
-        );
-      } finally {
-        f?.close();
-      }
-    }
+    mainGenerate();
   } else {
-    const {
-      builtin,
-      hostname,
-      port,
-      private: priv,
-      "skip-browser": skip,
-      "_": specifier,
-      ...rest
-    } = argsParse(Deno.args, {
-      default: {
-        hostname: "127.0.0.1",
-        port: 8709,
-      },
-      boolean: ["builtin", "private", "skip-browser"],
-      string: ["hostname"],
-    });
-    argCheck(rest, specifier.slice(1));
-
-    if (typeof port !== "number") {
-      console.error("Port must be a number");
-      Deno.exit(1);
-    }
-
-    if (builtin && specifier.length > 0) {
-      console.error("--builtin and <url> are mutually exclusive");
-      Deno.exit(1);
-    }
-
-    if (priv && specifier.length === 0) {
-      console.error("Must provide a specifier with --private");
-      Deno.exit(1);
-    }
-
-    let url = `http://${hostname}:${port}/`;
-    if (builtin) {
-      url += "doc/";
-    } else if (specifier.length > 0) {
-      url += `doc/${encodeURIComponent(specifier[0])}`;
-    }
-    if (priv) {
-      url += "?private=1";
-    }
-
-    console.info("Starting server...", url);
-
-    if (!skip) {
-      open(url);
-    }
-
-    for await (const req of serve({ hostname, port })) {
-      await handler(req);
-    }
+    mainServer();
   }
 }
