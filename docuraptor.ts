@@ -365,7 +365,19 @@ async function mainServer() {
   console.info("Starting server...", url);
 
   if (!skip) {
-    open(url);
+    try {
+      const browser = Deno.env.get("DOCURAPTOR_BROWSER") ??
+        Deno.env.get("BROWSER");
+      if (browser === undefined) {
+        throw null;
+      }
+
+      Deno.run({
+        cmd: [browser, url],
+      });
+    } catch {
+      open(url);
+    }
   }
 
   for await (const req of serve({ hostname, port })) {
@@ -384,7 +396,10 @@ $ docuraptor [--port=<port>] [--hostname=<hostname>]
              [--skip-browser] [--private] [--builtin | <url>]
 
 Opens the selected module or,
-if the module specifier is omitted, the documentation index.
+if the module specifier is omitted, the documentation index,
+in the system browser.
+The browser can be overwritten with the
+DOCURAPTOR_BROWSER and BROWSER environment variables.
 Listens on 127.0.0.1:8709 by default.
 
 Additionally requires network access for hostname:port.
