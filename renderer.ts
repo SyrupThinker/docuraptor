@@ -912,12 +912,28 @@ function generateIdentMap(docs: ddoc.DocNode[]): IdentMap {
   return map;
 }
 
+function identMapContains(ident_map: IdentMap, target_type: string[]): boolean {
+  let ident_map_: IdentMap | string | undefined = ident_map;
+
+  while (target_type.length > 0) {
+    if (ident_map_ === undefined || typeof ident_map_ === "string") {
+      return false;
+    }
+
+    ident_map_ = ident_map.get(target_type.shift()!);
+  }
+
+  return true;
+}
+
 // TODO Handle type parameters correctly
 function resolveType(
   ident_map: IdentMap,
   namespace: string[],
   identifier: string,
 ): string[] | null {
+  const target_type = identifier.split(".");
+
   const scopes: (string | IdentMap)[] = [ident_map];
   const resolved_namespace = Array.from(namespace);
 
@@ -936,7 +952,10 @@ function resolveType(
 
   while (scopes.length > 0) {
     const current_scope = scopes[scopes.length - 1];
-    if (typeof current_scope !== "string" && current_scope.has(identifier)) {
+    if (
+      typeof current_scope !== "string" &&
+      identMapContains(current_scope, target_type)
+    ) {
       break;
     }
     scopes.pop();
