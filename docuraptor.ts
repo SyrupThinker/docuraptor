@@ -386,26 +386,21 @@ async function mainServer() {
 }
 
 if (import.meta.main) {
-  const usage_string = `Docuraptor (${import.meta.url})
+  const usage_string = `%cDocuraptor%c (${import.meta.url})
 
-All functions require allow-run and read access to the Deno cache.
-
-
-Start documentation server:
+%cStart documentation server:%c
 $ docuraptor [--port=<port>] [--hostname=<hostname>]
              [--skip-browser] [--private] [--builtin | <url>]
 
 Opens the selected module or,
 if the module specifier is omitted, the documentation index,
 in the system browser.
-The browser can be overwritten with the
-DOCURAPTOR_BROWSER and BROWSER environment variables.
 Listens on 127.0.0.1:8709 by default.
 
-Additionally requires network access for hostname:port.
+%cAdditionally requires network access for hostname:port.%c
 
 
-Generate HTML documentation:
+%cGenerate HTML documentation:%c
 $ docuraptor --generate [--private] [--out=<output dir>]
              [--builtin] <url>...
 
@@ -413,15 +408,38 @@ Writes the documentation of the selected modules
 to the output directory, defaulting to the
 current working directory.
 
-Additionally requires write access to the output directory.
-`;
+%cAdditionally requires write access to the output directory.%c
+
+
+%cAll functions require allow-run and read access to the Deno cache.%c
+
+The system browser can be overwritten with the
+DOCURAPTOR_BROWSER and BROWSER environment variables.
+%cRequires allow-env.%c`;
+
+  const usage_css = [
+    "font-weight: bold",
+    "",
+    "text-decoration: underline;",
+    "",
+    "font-style: italic;",
+    "",
+    "text-decoration: underline;",
+    "",
+    "font-style: italic;",
+    "",
+    "font-style: italic;",
+    "",
+    "font-style: italic;",
+    "",
+  ];
 
   const { help, generate } = argsParse(Deno.args, {
     boolean: ["help", "generate"],
   });
 
   if (help) {
-    console.log(usage_string);
+    console.log(usage_string, ...usage_css);
     Deno.exit(0);
   }
 
