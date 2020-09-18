@@ -14,15 +14,18 @@ It generates and serves HTML documentation for JS/TS modules with the help of [D
 
 ## Installation
 
-`$ deno install --allow-run --allow-read --allow-write --allow-net https://deno.land/x/docuraptor@20200916.0/docuraptor.ts`
+`$ deno install -A https://deno.land/x/docuraptor@20200918.0/docuraptor.ts`
 
-The permissions can be further restricted.
+The permissions can be restricted.
 Read the `--help` documentation for more details.
 
 ## Usage
 
-`$ deno run https://deno.land/x/docuraptor@20200916.0/docuraptor.ts --help`
+`$ deno run https://deno.land/x/docuraptor@20200918.0/docuraptor.ts --help`
 
-## Screenshot
+## Examples
+
+<img src="./assets/demo.svg" alt="Docuraptor in w3m screencast" />
+*Docuraptor with `BROWSER=w3m`*
 
 <img src="./assets/screenshot.png" alt="Docuraptor documentation screenshot" />
