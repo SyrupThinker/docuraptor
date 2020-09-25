@@ -6,32 +6,7 @@ import {
   assert,
   unreachable,
 } from "./deps.ts";
-
-export function escape(s: string): string {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
-    ">",
-    "&gt;",
-  );
-}
-
-const size_units = ["B", "KiB", "MiB", "GiB"];
-function humanSize(bytes: number): string {
-  let unit = 0;
-  while (bytes > 1024 && unit < size_units.length - 1) {
-    bytes /= 1024;
-    unit++;
-  }
-
-  let visual = Math.round(bytes * 100) / 100;
-  return `${visual !== bytes ? "~" : ""}${visual}${size_units[unit]}`;
-}
-
-function identifierId(namespace: string[], identifier: string): string {
-  const namespace_html = escape(
-    namespace.length ? namespace.join(".") + "." : "",
-  );
-  return `ident_${namespace_html}${escape(identifier)}`;
-}
+import { htmlEscape, identifierId, humanSize } from "./utility.ts";
 
 const sort_order: ddoc.DocNode["kind"][] = [
   "import",
@@ -52,7 +27,7 @@ function sortDocNode(a: ddoc.DocNode, b: ddoc.DocNode): number {
 
 function unimplemented(what: string | undefined | null): string {
   return `<span class=unimplemented>UNIMPLEMENTED${
-    what != null ? ": " + escape(what) : ""
+    what != null ? ": " + htmlEscape(what) : ""
   }</span>`;
 }
 
@@ -91,7 +66,7 @@ export class DocRenderer {
         <body>
           ${
       this.renderHeader(
-        "Documentation for " + (specifier ? escape(specifier) : "Deno"),
+        "Documentation for " + (specifier ? htmlEscape(specifier) : "Deno"),
         { private_toggle: true },
       )
     }
@@ -110,7 +85,7 @@ export class DocRenderer {
 
   renderClassConstructorDef(doc: ddoc.ClassConstructorDef): string {
     let res = `<span class=keyword>${
-      doc.accessibility ? escape(doc.accessibility) + " " : ""
+      doc.accessibility ? htmlEscape(doc.accessibility) + " " : ""
     } constructor</span>(${this.renderParams(doc.params)})`;
 
     if (doc.jsDoc !== null) {
@@ -196,7 +171,7 @@ export class DocRenderer {
 
   renderClassMethodDef(doc: ddoc.ClassMethodDef): string {
     let res = `<span class=keyword>${
-      doc.accessibility ? escape(doc.accessibility) + " " : ""
+      doc.accessibility ? htmlEscape(doc.accessibility) + " " : ""
     }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
       doc.kind === "getter"
         ? "get "
@@ -205,7 +180,7 @@ export class DocRenderer {
         : doc.kind === "method"
         ? ""
         : unreachable()
-    }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}${
+    }</span> ${htmlEscape(doc.name)}${doc.optional ? "?" : ""}${
       this.renderTypeParams(doc.functionDef.typeParams)
     }(${this.renderParams(doc.functionDef.params)})`;
 
@@ -222,10 +197,10 @@ export class DocRenderer {
 
   renderClassPropertyDef(doc: ddoc.ClassPropertyDef): string {
     let res = `<span class=keyword>${
-      doc.accessibility ? escape(doc.accessibility) + " " : ""
+      doc.accessibility ? htmlEscape(doc.accessibility) + " " : ""
     }${doc.isAbstract ? "abstract " : ""}${doc.isStatic ? "static " : ""}${
       doc.readonly ? "readonly " : ""
-    }</span> ${escape(doc.name)}${doc.optional ? "?" : ""}`;
+    }</span> ${htmlEscape(doc.name)}${doc.optional ? "?" : ""}`;
 
     if (doc.tsType !== null) {
       res += `: ${this.renderTsTypeDef(doc.tsType)}`;
@@ -282,7 +257,7 @@ export class DocRenderer {
   renderEnumDef(doc: ddoc.DocNodeEnum): string {
     return `<span class=keyword>enum</span> ${this.renderIdentifier(doc.name)}
     <ol class="nomarks noborder">${
-      doc.enumDef.members.map((m) => `<li>${escape(m.name)}</li>`).join("")
+      doc.enumDef.members.map((m) => `<li>${htmlEscape(m.name)}</li>`).join("")
     }</ol>`;
   }
 
@@ -355,20 +330,20 @@ export class DocRenderer {
   }
 
   renderIdentifier(identifier: string, href?: string): string {
-    const namespace_html = escape(
+    const namespace_html = htmlEscape(
       this.#namespace.length ? this.#namespace.join(".") + "." : "",
     );
     const ident_id = identifierId(this.#namespace, identifier);
 
     return namespace_html +
       `<span id="${ident_id}" class=identifier><a href="${
-        href !== undefined ? escape(href) : `#${ident_id}`
-      }">${escape(identifier)}</a></span>`;
+        href !== undefined ? htmlEscape(href) : `#${ident_id}`
+      }">${htmlEscape(identifier)}</a></span>`;
   }
 
   renderImportDef(doc: ddoc.DocNodeImport): string {
     const impd = doc.importDef;
-    const src = `&quot;${escape(impd.src)}&quot;`;
+    const src = `&quot;${htmlEscape(impd.src)}&quot;`;
     const src_doc = this.#options.static
       ? undefined
       : `/doc/${encodeURIComponent(impd.src)}`;
@@ -429,9 +404,9 @@ export class DocRenderer {
     const link = (u: info.FileDeps, icon: string, icon_type: string) => {
       return `<li class=link><span class="iconize icon-${icon_type}">${icon}</span> ${
         this.#options.static
-          ? escape(u.name)
+          ? htmlEscape(u.name)
           : `<a href="/doc/${encodeURIComponent(u.name)}">${
-            escape(u.name)
+            htmlEscape(u.name)
           }</a> <i>${humanSize(u.size)}</i>`
       }</li>`;
     };
@@ -565,7 +540,7 @@ export class DocRenderer {
   }
 
   renderInterfaceMethodDef(doc: ddoc.InterfaceMethodDef): string {
-    let res = `${escape(doc.name)}${doc.optional ? "?" : ""}${
+    let res = `${htmlEscape(doc.name)}${doc.optional ? "?" : ""}${
       this.renderTypeParams(doc.typeParams)
     }(${this.renderParams(doc.params)})`;
 
@@ -581,7 +556,7 @@ export class DocRenderer {
   }
 
   renderInterfacePropertyDef(doc: ddoc.InterfacePropertyDef): string {
-    let res = `${escape(doc.name)}${doc.optional ? "?" : ""}`;
+    let res = `${htmlEscape(doc.name)}${doc.optional ? "?" : ""}`;
 
     if (doc.tsType !== null) {
       res += `: ${this.renderTsTypeDef(doc.tsType)}`;
@@ -600,10 +575,10 @@ export class DocRenderer {
       ? [doc.slice(0, summary_end), doc.slice(summary_end)]
       : [doc, undefined];
 
-    let res = `<pre>${escape(summary)}</pre>`;
+    let res = `<pre>${htmlEscape(summary)}</pre>`;
     if (remainder !== undefined) {
       res = `<details><summary>${res}</summary><pre>${
-        escape(remainder)
+        htmlEscape(remainder)
       }</pre></details>`;
     }
     return res;
@@ -624,9 +599,9 @@ export class DocRenderer {
   }
 
   renderLiteralMethodDef(doc: ddoc.LiteralMethodDef): string {
-    let res = `${escape(doc.name)}${this.renderTypeParams(doc.typeParams)}(${
-      this.renderParams(doc.params)
-    })`;
+    let res = `${htmlEscape(doc.name)}${
+      this.renderTypeParams(doc.typeParams)
+    }(${this.renderParams(doc.params)})`;
 
     if (doc.returnType !== null) {
       res += `: ${this.renderTsTypeDef(doc.returnType)}`;
@@ -636,7 +611,7 @@ export class DocRenderer {
   }
 
   renderLiteralPropertyDef(prop: ddoc.LiteralPropertyDef): string {
-    let res = `${escape(prop.name)}${prop.optional ? "?" : ""}`;
+    let res = `${htmlEscape(prop.name)}${prop.optional ? "?" : ""}`;
 
     if (prop.tsType !== null) {
       res += `: ${this.renderTsTypeDef(prop.tsType)}`;
@@ -671,9 +646,9 @@ export class DocRenderer {
     switch (prop.kind) {
       case "assign":
         // TODO Does not display assigned value
-        return escape(prop.key);
+        return htmlEscape(prop.key);
       case "keyValue":
-        return `${escape(prop.key)}: ${this.renderParamDef(prop.value)}`;
+        return `${htmlEscape(prop.key)}: ${this.renderParamDef(prop.value)}`;
       case "rest":
         return `...${this.renderParamDef(prop.arg)}`;
     }
@@ -690,7 +665,7 @@ export class DocRenderer {
         // TODO Does not display assigned value
         return this.renderParamDef(doc.left);
       case "identifier":
-        return escape(doc.name) + (doc.optional ? "?" : "");
+        return htmlEscape(doc.name) + (doc.optional ? "?" : "");
       case "object":
         return `{${
           doc.props.map((p) => this.renderObjectPatPropDef(p)).join(", ")
@@ -717,7 +692,7 @@ export class DocRenderer {
         {
           kind: d.kind,
           id: identifierId(namespace, d.name),
-          ident: escape([...namespace, d.name].join(".")),
+          ident: htmlEscape([...namespace, d.name].join(".")),
         },
         ...(d.kind === "namespace"
           ? collectIdents(d.namespaceDef.elements, [...namespace, d.name])
@@ -732,7 +707,7 @@ export class DocRenderer {
       ).map(({ kind, id, ident }) =>
         `<li><span class="iconize icon-${kind}">${
           kind[0].toLocaleUpperCase()
-        }</span> <a href="#${id}">${escape(ident)}</a></li>`
+        }</span> <a href="#${id}">${htmlEscape(ident)}</a></li>`
       ).join("")
     }
     </ol>`;
@@ -779,7 +754,7 @@ export class DocRenderer {
           " &amp; ",
         );
       case "keyword":
-        return `<span class=exkeyword>${escape(type_def.keyword)}</span>`;
+        return `<span class=exkeyword>${htmlEscape(type_def.keyword)}</span>`;
       case "literal": {
         const lit = type_def.literal;
         return `<span class=literal>${
@@ -788,7 +763,7 @@ export class DocRenderer {
             : lit.kind === "number"
             ? String(lit.number)
             : lit.kind === "string"
-            ? `"${escape(lit.string)}"`
+            ? `"${htmlEscape(lit.string)}"`
             : unreachable()
         }</span>`;
       }
@@ -809,7 +784,7 @@ export class DocRenderer {
         return this.renderTypeLiteral(type_def.typeLiteral);
       case "typeOperator":
         return `<span class=keyword>${
-          escape(type_def.typeOperator.operator)
+          htmlEscape(type_def.typeOperator.operator)
         }</span> ${this.renderTsTypeDef(type_def.typeOperator.tsType)}`;
       case "typeQuery":
         return this.renderTypeReference(type_def.typeQuery);
@@ -883,7 +858,7 @@ export class DocRenderer {
   renderVariableDef(
     doc: ddoc.DocNodeVariable,
   ): string {
-    let res = `<span class=keyword>${escape(doc.variableDef.kind)}</span> ${
+    let res = `<span class=keyword>${htmlEscape(doc.variableDef.kind)}</span> ${
       this.renderIdentifier(doc.name)
     }`;
 

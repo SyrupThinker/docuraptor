@@ -7,7 +7,8 @@ import {
   ServerRequest,
   unreachable,
 } from "./deps.ts";
-import { DocRenderer, escape } from "./renderer.ts";
+import { DocRenderer } from "./renderer.ts";
+import { htmlEscape } from "./utility.ts";
 
 const decoder = new TextDecoder();
 
@@ -38,7 +39,7 @@ async function handleDoc(req: ServerRequest): Promise<void> {
     );
   } catch (err) {
     if (err.stderr !== undefined) {
-      handleFail(req, 500, escape(err.stderr));
+      handleFail(req, 500, htmlEscape(err.stderr));
     } else {
       handleFail(req, 500, "Documentation generation failed");
     }
@@ -74,7 +75,7 @@ async function handleFail(
         ${rend.renderHeader("An error occured")}
         <main>
           <pre>
-            ${escape(message)}
+            ${htmlEscape(message)}
           </pre>
         </main>
       </body>
@@ -137,7 +138,7 @@ async function handleIndex(req: ServerRequest): Promise<void> {
       known_documentation.sort().map(
         (url) =>
           `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
-            escape(url)
+            htmlEscape(url)
           }</a></li>`,
       ).join("")
     }
@@ -175,7 +176,11 @@ async function handleForm(req: ServerRequest): Promise<void> {
       break;
     }
     default:
-      await handleFail(req, 400, `Invalid form action ${escape(form_action)}`);
+      await handleFail(
+        req,
+        400,
+        `Invalid form action ${htmlEscape(form_action)}`,
+      );
   }
 }
 
