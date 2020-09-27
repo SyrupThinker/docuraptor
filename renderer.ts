@@ -58,6 +58,14 @@ export class DocRenderer {
       this.#options.private || node.kind !== "import"
     );
 
+    if (info_j !== null) {
+      try {
+        new URL(specifier!);
+      } catch {
+        specifier = new URL(info_j.local, "file:///").toString();
+      }
+    }
+
     return `<!DOCTYPE html>
       <html>
         <head>
@@ -70,7 +78,7 @@ export class DocRenderer {
         { private_toggle: true },
       )
     }
-          ${info_j ? this.renderInfo(info_j) : ""}
+          ${info_j ? this.renderInfo(specifier!, info_j) : ""}
           <div class=hor-flex>
             <nav class=sidebar>
               ${this.renderSidebar(filtered_doc)}
@@ -400,59 +408,59 @@ export class DocRenderer {
     return res;
   }
 
-  renderInfo(info: info.FileInfo): string {
-    const link = (u: info.FileDeps, icon: string, icon_type: string) => {
+  renderInfo(specifier: string, info: info.FileInfo): string {
+    const link = (
+      spec: string,
+      dep: info.FileDependency,
+      icon: string,
+      icon_type: string,
+    ) => {
       return `<li class=link><span class="iconize icon-${icon_type}">${icon}</span> ${
         this.#options.static
-          ? htmlEscape(u.name)
-          : `<a href="/doc/${encodeURIComponent(u.name)}">${
-            htmlEscape(u.name)
-          }</a> <i>${humanSize(u.size)}</i>`
+          ? htmlEscape(spec)
+          : `<a href="/doc/${encodeURIComponent(spec)}">${
+            htmlEscape(spec)
+          }</a> <i>${humanSize(dep.size)}</i>`
       }</li>`;
     };
 
-    const unique_deps = new Map(info.deps.deps.map((d) => [d.name, d]));
-    const direct_deps = new Set(unique_deps.keys());
+    const unique_deps = Object.entries(info.files);
+    const direct_deps = new Set(info.files[specifier].deps);
 
     function compare_deps(
-      { name: a_name }: info.FileDeps,
-      { name: b_name }: info.FileDeps,
+      a_name: string,
+      b_name: string,
     ): number {
       let a_dir = direct_deps.has(a_name);
       let b_dir = direct_deps.has(b_name);
 
-      return a_dir === b_dir
-        ? a_name.localeCompare(b_name)
-        : Number(b_dir) - Number(a_dir);
+      return -(a_name === specifier) || +(b_name === specifier) ||
+        (a_dir === b_dir
+          ? a_name.localeCompare(b_name)
+          : Number(b_dir) - Number(a_dir));
     }
 
-    function scan_deps(deps: info.FileDeps): void {
-      unique_deps.set(deps.name, deps);
+    const transitive = unique_deps.length - direct_deps.size - 1;
 
-      for (const dep of deps.deps) {
-        scan_deps(dep);
-      }
-    }
-    scan_deps(info.deps);
-    unique_deps.delete(info.deps.name);
-
-    const transitive = unique_deps.size - direct_deps.size;
-
-    return unique_deps.size > 0
+    return unique_deps.length > 1
       ? `<div class=metadata>
       <details>
         <summary class=padding>
           Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive. <i>${
-        humanSize(info.deps.totalSize ?? 0)
+        humanSize(info.totalSize ?? 0)
       }</i>
         </summary>
         <ol class="nomarks indent monospace">
-        ${link(info.deps, "S", "white")}
         ${
-        Array.from(unique_deps.values()).sort(compare_deps).map((u) =>
+        unique_deps.sort(([sp_a], [sp_b]) => compare_deps(sp_a, sp_b)).map((
+          [sp, dep],
+        ) =>
           link(
-            u,
-            ...<[string, string]> (direct_deps.has(u.name)
+            sp,
+            dep,
+            ...<[string, string]> (specifier === sp
+              ? ["S", "white"]
+              : direct_deps.has(sp)
               ? ["D", "green"]
               : ["T", "orange"]),
           )

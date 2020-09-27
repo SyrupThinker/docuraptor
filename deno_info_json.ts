@@ -6,17 +6,17 @@ export interface DenoInfo {
   typescriptCache: string;
 }
 
-export interface FileDeps {
-  name: string;
+export interface FileDependency {
   size: number;
-  totalSize: number | null;
-  deps: FileDeps[];
+  deps: string[];
 }
 
 export interface FileInfo {
   local: string;
   fileType: "TypeScript" | "JavaScript";
-  compiled: string;
+  compiled: string | null;
   map: string | null;
-  deps: FileDeps;
+  depCount: number;
+  totalSize: number;
+  files: Record<string, FileDependency>;
 }
