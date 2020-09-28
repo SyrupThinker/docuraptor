@@ -34,6 +34,7 @@ async function handleDoc(req: ServerRequest): Promise<void> {
   try {
     doc = await new DocRenderer({
       private: !!search.get("private"),
+      link_module: (mod) => `/doc/${encodeURIComponent(mod)}`,
     }).render(
       doc_url.length > 0 ? doc_url : undefined,
     );

@@ -32,6 +32,7 @@ function unimplemented(what: string | undefined | null): string {
 }
 
 interface DocRendererOptions {
+  link_module?: (module: string) => string | undefined;
   private?: boolean;
   static?: boolean;
 }
@@ -352,9 +353,7 @@ export class DocRenderer {
   renderImportDef(doc: ddoc.DocNodeImport): string {
     const impd = doc.importDef;
     const src = `&quot;${htmlEscape(impd.src)}&quot;`;
-    const src_doc = this.#options.static
-      ? undefined
-      : `/doc/${encodeURIComponent(impd.src)}`;
+    const src_doc = this.#options.link_module?.(impd.src);
 
     let res = `<span class=keyword>import</span> `;
 
@@ -371,7 +370,7 @@ export class DocRenderer {
       res += `{ ${
         this.renderIdentifier(
           impd.imported,
-          this.#options.static
+          src_doc !== undefined
             ? undefined
             : src_doc + "#" + identifierId([], impd.imported),
         )
@@ -380,7 +379,7 @@ export class DocRenderer {
       res += `{ ${
         this.renderIdentifier(
           doc.name,
-          this.#options.static
+          src_doc !== undefined
             ? undefined
             : src_doc + "#" + identifierId([], doc.name),
         )
@@ -388,7 +387,7 @@ export class DocRenderer {
     }
 
     res += ` <span class=keyword>from</span> <span class=literal>
-      ${this.#options.static ? src : `<a href="${src_doc}">${src}</a>`}
+      ${src_doc !== undefined ? src : `<a href="${src_doc}">${src}</a>`}
     </span>`;
 
     return res;
@@ -415,12 +414,13 @@ export class DocRenderer {
       icon: string,
       icon_type: string,
     ) => {
+      const src_doc = this.#options.link_module?.(spec);
       return `<li class=link><span class="iconize icon-${icon_type}">${icon}</span> ${
-        this.#options.static
+        src_doc === undefined
           ? htmlEscape(spec)
-          : `<a href="/doc/${encodeURIComponent(spec)}">${
-            htmlEscape(spec)
-          }</a> <i>${humanSize(dep.size)}</i>`
+          : `<a href="${src_doc}">${htmlEscape(spec)}</a> <i>${
+            humanSize(dep.size)
+          }</i>`
       }</li>`;
     };
 
