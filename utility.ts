@@ -23,3 +23,18 @@ export function identifierId(namespace: string[], identifier: string): string {
   );
   return `ident_${namespace_html}${htmlEscape(identifier)}`;
 }
+
+const encoder = new TextEncoder();
+/**
+ * Convert a module identifier to a file name compatible with URL's and most file systems
+ *
+ * Achieved by encoding all non ASCII alphanumeric bytes.
+ */
+export function moduleToFile(module_url: string): string {
+  return Array.from(encoder.encode(module_url).values()).map((byte) =>
+    ((0x30 <= byte && byte < 0x3A) || (0x41 <= byte && byte < 0x5B) ||
+        (0x61 <= byte && byte < 0x7B))
+      ? String.fromCharCode(byte)
+      : `$${byte.toString(16).padStart(2, "0")}`
+  ).join("");
+}

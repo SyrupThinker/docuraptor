@@ -7,6 +7,7 @@ import {
   ServerRequest,
   unreachable,
 } from "./deps.ts";
+import { generateStatic } from "./generator.ts";
 import { DocRenderer } from "./renderer.ts";
 import { htmlEscape } from "./utility.ts";
 
@@ -283,52 +284,31 @@ async function initialize() {
 }
 
 async function mainGenerate() {
-  const { builtin, generate, out, private: priv, "_": specifiers, ...rest } =
-    argsParse(
-      Deno.args,
-      {
-        boolean: ["builtin", "generate", "private"],
-        string: ["out"],
-      },
-    );
+  const {
+    builtin,
+    dependencies,
+    generate,
+    index,
+    out,
+    private: priv,
+    "_": specifiers,
+    ...rest
+  } = argsParse(
+    Deno.args,
+    {
+      boolean: [/*"builtin",*/ "dependencies", "generate", "private"],
+      string: ["index", "out"],
+    },
+  );
   argCheck(rest, []);
 
-  const targets: [string, string | undefined][] = specifiers.map((
-    s,
-  ) => [encodeURIComponent(s), s.toString()]);
-
-  if (builtin) {
-    targets.push(["Deno", undefined]);
-  }
-
-  if (out !== undefined) {
-    await Deno.mkdir(out, { recursive: true });
-  }
-
-  const encoder = new TextEncoder();
-  for (const [name, specifier] of targets) {
-    const filename = `${name}.html`;
-    const filepath = out !== undefined ? pathJoin(out, filename) : filename;
-
-    let f;
-    try {
-      f = await Deno.open(filepath, {
-        create: true,
-        truncate: true,
-        write: true,
-      });
-      await Deno.writeAll(
-        f,
-        encoder.encode(
-          await new DocRenderer({ static: true, private: priv }).render(
-            specifier,
-          ),
-        ),
-      );
-    } finally {
-      f?.close();
-    }
-  }
+  await generateStatic(specifiers.map((v) => v.toString()), {
+    builtin,
+    index_filename: index,
+    output_directory: out,
+    private: priv,
+    recursive: dependencies,
+  });
 }
 
 async function mainServer() {
@@ -416,12 +396,16 @@ Listens on 127.0.0.1:8709 by default.
 
 
 %cGenerate HTML documentation:%c
-$ docuraptor --generate [--private] [--out=<output dir>]
-             [--builtin] <url>...
+$ docuraptor --generate [--out=<output dir>] [--index=<index file>]
+             [--dependencies] [--private] <url>...
 
 Writes the documentation of the selected modules
 to the output directory, defaulting to the
 current working directory.
+With the dependencies flag set documentation is also
+generated for all modules dependet upon.
+Writes an index of all generated documentation
+to the index file, defaulting to %cindex.html%c. 
 
 %cAdditionally requires write access to the output directory.%c
 
@@ -440,6 +424,8 @@ DOCURAPTOR_BROWSER and BROWSER environment variables.
     "font-style: italic;",
     "",
     "text-decoration: underline;",
+    "",
+    "font-style: italic;",
     "",
     "font-style: italic;",
     "",
