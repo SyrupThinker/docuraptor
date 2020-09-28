@@ -244,7 +244,7 @@ function argCheck(
 }
 
 function open(s: string): void {
-  Deno.run({
+  let run = Deno.run({
     cmd: Deno.build.os === "windows"
       ? ["start", "", s]
       : Deno.build.os === "darwin"
@@ -256,22 +256,29 @@ function open(s: string): void {
     stdout: "null",
     stderr: "null",
   });
+
+  run.status().finally(() => run.close());
 }
 
 async function initialize() {
-  const p = Deno.run({
-    cmd: ["deno", "info", "--json", "--unstable"],
-    stdin: "null",
-    stdout: "piped",
-    stderr: "null",
-  });
+  let p;
+  try {
+    p = Deno.run({
+      cmd: ["deno", "info", "--json", "--unstable"],
+      stdin: "null",
+      stdout: "piped",
+      stderr: "null",
+    });
 
-  const info: { modulesCache: string } = JSON.parse(
-    decoder.decode(await p.output()),
-  );
+    const info: { modulesCache: string } = JSON.parse(
+      decoder.decode(await p.output()),
+    );
 
-  if ((await p.status()).success) {
-    deps_url = new URL(info.modulesCache + "/", file_url);
+    if ((await p.status()).success) {
+      deps_url = new URL(info.modulesCache + "/", file_url);
+    }
+  } finally {
+    p?.close();
   }
 }
 
@@ -378,9 +385,11 @@ async function mainServer() {
         throw null;
       }
 
-      Deno.run({
+      let run = Deno.run({
         cmd: [browser, url],
       });
+
+      run.status().finally(() => run.close());
     } catch {
       open(url);
     }
