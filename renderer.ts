@@ -2,11 +2,8 @@ import assets from "./assets.ts";
 import { getDenoData } from "./deno_api.ts";
 import type * as ddoc from "./deno_doc_json.ts";
 import type * as info from "./deno_info_json.ts";
-import {
-  assert,
-  unreachable,
-} from "./deps.ts";
-import { htmlEscape, identifierId, humanSize } from "./utility.ts";
+import { assert, unreachable } from "./deps.ts";
+import { htmlEscape, humanSize, identifierId } from "./utility.ts";
 
 const sort_order: ddoc.DocNode["kind"][] = [
   "import",
