@@ -1,6 +1,13 @@
 // deno-lint-ignore-file camelcase
 import assets from "./assets.ts";
-import { argsParse, assert, unreachable } from "./deps.ts";
+import {
+  argsParse,
+  assert,
+  bold,
+  italic,
+  underline,
+  unreachable,
+} from "./deps.ts";
 import { generateStatic } from "./generator.ts";
 import { DocRenderer } from "./renderer.ts";
 import { htmlEscape } from "./utility.ts";
@@ -47,9 +54,9 @@ async function handleDoc(req: Deno.RequestEvent): Promise<void> {
   await req.respondWith(
     new Response(doc, {
       status: 200,
-      headers: new Headers({
+      headers: {
         "Content-Type": "text/html",
-      }),
+      },
     }),
   );
 }
@@ -78,9 +85,9 @@ async function handleFail(
   </html>`,
       {
         status,
-        headers: new Headers({
+        headers: {
           "Content-Type": "text/html",
-        }),
+        },
       },
     ),
   );
@@ -148,9 +155,9 @@ async function handleIndex(req: Deno.RequestEvent): Promise<void> {
 </html>`,
       {
         status: 200,
-        headers: new Headers({
+        headers: {
           "Content-Type": "text/html",
-        }),
+        },
       },
     ),
   );
@@ -158,29 +165,24 @@ async function handleIndex(req: Deno.RequestEvent): Promise<void> {
 
 const form_prefix = "/form/";
 async function handleForm(req: Deno.RequestEvent): Promise<void> {
-  const path = new URL(req.request.url).pathname;
-  assert(path.startsWith(form_prefix));
+  const url = new URL(req.request.url);
+  assert(url.pathname.startsWith(form_prefix));
 
-  const args = path.substr(form_prefix.length);
-  const search_index = args.indexOf("?");
-  const form_action = args.slice(0, search_index);
-  const search = new URLSearchParams(
-    search_index === -1 ? "" : args.slice(search_index),
-  );
+  const args = url.pathname.substr(form_prefix.length);
 
-  switch (form_action) {
+  switch (args) {
     case "open": {
-      if (!search.has("url")) {
+      if (!url.searchParams.has("url")) {
         await handleFail(req, 400, "Received invalid request");
         return;
       }
 
       await req.respondWith(
-        new Response("", {
-          status: 301,
-          headers: new Headers({
-            "Location": `/doc/${search.get("url")!}`,
-          }),
+        new Response(null, {
+          status: 302,
+          headers: {
+            Location: `/doc/${url.searchParams.get("url")!}`,
+          },
         }),
       );
       break;
@@ -189,7 +191,7 @@ async function handleForm(req: Deno.RequestEvent): Promise<void> {
       await handleFail(
         req,
         400,
-        `Invalid form action ${htmlEscape(form_action)}`,
+        `Invalid form action ${htmlEscape(args)}`,
       );
   }
 }
@@ -207,9 +209,9 @@ async function handleStatic(req: Deno.RequestEvent): Promise<void> {
     await req.respondWith(
       new Response(asset.content, {
         status: 200,
-        headers: new Headers({
+        headers: {
           "Content-Type": asset.mimetype ?? "application/octet-stream",
-        }),
+        },
       }),
     );
   }
@@ -379,7 +381,7 @@ async function mainServer() {
 
       run.status().finally(() => run.close());
     } catch {
-      // open(url);
+      open(url);
     }
   }
   const listener = Deno.listen({ port, hostname });
@@ -394,9 +396,9 @@ async function mainServer() {
 }
 
 if (import.meta.main) {
-  const usage_string = `%cDocuraptor%c (${import.meta.url})
+  const usage_string = `${bold("Docuraptor")} (${import.meta.url})
 
-%cStart documentation server:%c
+${underline("Start documentation server:")}
 $ docuraptor [--port=<port>] [--hostname=<hostname>]
              [--skip-browser] [--private] [--builtin | <url>]
 
@@ -405,10 +407,10 @@ if the module specifier is omitted, the documentation index,
 in the system browser.
 Listens on 127.0.0.1:8709 by default.
 
-%cAdditionally requires network access for hostname:port.%c
+${italic("Additionally requires network access for hostname:port.")}
 
 
-%cGenerate HTML documentation:%c
+${underline("Generate HTML documentation:")}
 $ docuraptor --generate [--out=<output dir>] [--index=<index file>]
              [--dependencies] [--private] <url>...
 
@@ -418,42 +420,23 @@ current working directory.
 With the dependencies flag set documentation is also
 generated for all modules dependet upon.
 Writes an index of all generated documentation
-to the index file, defaulting to %cindex.html%c. 
+to the index file, defaulting to ${italic("index.html")}. 
 
-%cAdditionally requires write access to the output directory.%c
+${italic("Additionally requires write access to the output directory.")}
 
 
-%cAll functions require allow-run and read access to the Deno cache.%c
+${italic("All functions require allow-run and read access to the Deno cache.")}
 
 The system browser can be overwritten with the
 DOCURAPTOR_BROWSER and BROWSER environment variables.
-%cRequires allow-env.%c`;
-
-  const usage_css = [
-    "font-weight: bold",
-    "",
-    "text-decoration: underline;",
-    "",
-    "font-style: italic;",
-    "",
-    "text-decoration: underline;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-  ];
+${italic("Requires allow-env.")}`;
 
   const { help, generate } = argsParse(Deno.args, {
     boolean: ["help", "generate"],
   });
 
   if (help) {
-    console.log(usage_string, ...usage_css);
+    console.log(usage_string);
     Deno.exit(0);
   }
 

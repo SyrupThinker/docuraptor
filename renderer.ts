@@ -2,6 +2,7 @@ import assets from "./assets.ts";
 import { getDenoData } from "./deno_api.ts";
 import type * as ddoc from "./deno_doc_json.ts";
 import type * as info from "./deno_info_json.ts";
+import type { Dependency, Module } from "./deno_info_json.ts";
 import { assert, unreachable } from "./deps.ts";
 import { htmlEscape, humanSize, identifierId } from "./utility.ts";
 
@@ -60,7 +61,7 @@ export class DocRenderer {
       try {
         new URL(specifier!);
       } catch {
-        specifier = new URL(info_j.local, "file:///").toString();
+        specifier = new URL(info_j.root, "file:///").toString();
       }
     }
 
@@ -407,7 +408,7 @@ export class DocRenderer {
   renderInfo(specifier: string, info: info.FileInfo): string {
     const link = (
       spec: string,
-      dep: info.FileDependency,
+      dep: info.Module,
       icon: string,
       icon_type: string,
     ) => {
@@ -421,19 +422,23 @@ export class DocRenderer {
       }</li>`;
     };
 
-    const unique_deps = Object.entries(info.files);
-    const direct_deps = new Set(info.files[specifier].deps);
+    const unique_deps = info.modules;
+    const direct_deps = new Set(
+      info.modules.find((module) => module.specifier === specifier)
+        ?.dependencies as info.Module[] | undefined,
+    );
 
     function compare_deps(
-      a_name: string,
-      b_name: string,
+      a_name: Module,
+      b_name: Module,
     ): number {
       let a_dir = direct_deps.has(a_name);
       let b_dir = direct_deps.has(b_name);
 
-      return -(a_name === specifier) || +(b_name === specifier) ||
+      return -(a_name.specifier === specifier) ||
+        +(b_name.specifier === specifier) ||
         (a_dir === b_dir
-          ? a_name.localeCompare(b_name)
+          ? a_name.specifier.localeCompare(b_name.specifier)
           : Number(b_dir) - Number(a_dir));
     }
 
@@ -444,18 +449,19 @@ export class DocRenderer {
       <details>
         <summary class=padding>
           Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive. <i>${
-        humanSize(info.totalSize ?? 0)
+        humanSize(info.size ?? 0)
       }</i>
         </summary>
         <ol class="nomarks indent monospace">
         ${
-        unique_deps.sort(([sp_a], [sp_b]) => compare_deps(sp_a, sp_b)).map((
-          [sp, dep],
+        unique_deps.sort((sp_a, sp_b) => compare_deps(sp_a, sp_b)).map((
+          sp,
+          dep,
         ) =>
           link(
+            sp.specifier,
             sp,
-            dep,
-            ...<[string, string]> (specifier === sp
+            ...<[string, string]> (specifier === sp.specifier
               ? ["S", "white"]
               : direct_deps.has(sp)
               ? ["D", "green"]
