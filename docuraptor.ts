@@ -1,10 +1,11 @@
+// deno-lint-ignore-file camelcase
 import assets from "./assets.ts";
 import {
-  assert,
   argsParse,
-  pathJoin,
-  serve,
-  ServerRequest,
+  assert,
+  bold,
+  italic,
+  underline,
   unreachable,
 } from "./deps.ts";
 import { generateStatic } from "./generator.ts";
@@ -18,10 +19,11 @@ const decoder = new TextDecoder();
  */
 
 const doc_prefix = "/doc/";
-async function handleDoc(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(doc_prefix));
+async function handleDoc(req: Deno.RequestEvent): Promise<void> {
+  const path = new URL(req.request.url).pathname;
+  assert(path.startsWith(doc_prefix));
 
-  const args = req.url.substr(doc_prefix.length);
+  const args = path.substr(doc_prefix.length);
   const search_index = args.indexOf("?");
 
   const doc_url = decodeURIComponent(
@@ -40,6 +42,7 @@ async function handleDoc(req: ServerRequest): Promise<void> {
       doc_url.length > 0 ? doc_url : undefined,
     );
   } catch (err) {
+    console.log(err);
     if (err.stderr !== undefined) {
       handleFail(req, 500, htmlEscape(err.stderr));
     } else {
@@ -48,46 +51,51 @@ async function handleDoc(req: ServerRequest): Promise<void> {
     return;
   }
 
-  await req.respond({
-    status: 200,
-    headers: new Headers({
-      "Content-Type": "text/html",
+  await req.respondWith(
+    new Response(doc, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html",
+      },
     }),
-    body: doc,
-  });
+  );
 }
 
 async function handleFail(
-  req: ServerRequest,
+  req: Deno.RequestEvent,
   status: number,
   message: string,
 ): Promise<void> {
   const rend = new DocRenderer();
-  await req.respond({
-    status,
-    headers: new Headers({
-      "Content-Type": "text/html",
-    }),
-    body: `<!DOCTYPE html>
-    <html>
-      <head>
-        ${rend.renderHead("Docuraptor Error")}
-      </head>
-      <body>
-        ${rend.renderHeader("An error occured")}
-        <main>
-          <pre>
-            ${htmlEscape(message)}
-          </pre>
-        </main>
-      </body>
-    </html>`,
-  });
+  await req.respondWith(
+    new Response(
+      `<!DOCTYPE html>
+  <html>
+    <head>
+      ${rend.renderHead("Docuraptor Error")}
+    </head>
+    <body>
+      ${rend.renderHeader("An error occured")}
+      <main>
+        <pre>
+          ${htmlEscape(message)}
+        </pre>
+      </main>
+    </body>
+  </html>`,
+      {
+        status,
+        headers: {
+          "Content-Type": "text/html",
+        },
+      },
+    ),
+  );
 }
 
 const file_url = new URL("file:/");
 let deps_url: URL | undefined = undefined;
-async function handleIndex(req: ServerRequest): Promise<void> {
+async function handleIndex(req: Deno.RequestEvent): Promise<void> {
   const known_documentation = [];
 
   if (deps_url !== undefined) {
@@ -122,109 +130,112 @@ async function handleIndex(req: ServerRequest): Promise<void> {
   }
 
   const rend = new DocRenderer();
-  await req.respond({
-    status: 200,
-    headers: new Headers({
-      "Content-Type": "text/html",
-    }),
-    body: `<html>
-      <head>
-        ${rend.renderHead("Docuraptor Index")}
-      </head>
-      <body>
-        ${rend.renderHeader("Docuraptor Index – Locally available modules")}
-        <main>
-          <ul>
-            <li class=link><a href="/doc/">Deno Builtin</a></li>
-            ${
-      known_documentation.sort().map(
-        (url) =>
-          `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
-            htmlEscape(url)
-          }</a></li>`,
-      ).join("")
-    }
-          </ul>
-        </main>
-      </body>
-    </html>`,
-  });
+  await req.respondWith(
+    new Response(
+      `<html>
+  <head>
+    ${rend.renderHead("Docuraptor Index")}
+  </head>
+  <body>
+    ${rend.renderHeader("Docuraptor Index – Locally available modules")}
+    <main>
+      <ul>
+        <li class=link><a href="/doc/">Deno Builtin</a></li>
+        ${
+        known_documentation.sort().map(
+          (url) =>
+            `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
+              htmlEscape(url)
+            }</a></li>`,
+        ).join("")
+      }
+      </ul>
+    </main>
+  </body>
+</html>`,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html",
+        },
+      },
+    ),
+  );
 }
 
 const form_prefix = "/form/";
-async function handleForm(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(form_prefix));
+async function handleForm(req: Deno.RequestEvent): Promise<void> {
+  const url = new URL(req.request.url);
+  assert(url.pathname.startsWith(form_prefix));
 
-  const args = req.url.substr(form_prefix.length);
-  const search_index = args.indexOf("?");
-  const form_action = args.slice(0, search_index);
-  const search = new URLSearchParams(
-    search_index === -1 ? "" : args.slice(search_index),
-  );
+  const args = url.pathname.substr(form_prefix.length);
 
-  switch (form_action) {
+  switch (args) {
     case "open": {
-      if (!search.has("url")) {
+      if (!url.searchParams.has("url")) {
         await handleFail(req, 400, "Received invalid request");
         return;
       }
 
-      await req.respond({
-        status: 301,
-        headers: new Headers({
-          "Location": `/doc/${search.get("url")!}`,
+      await req.respondWith(
+        new Response(null, {
+          status: 302,
+          headers: {
+            Location: `/doc/${url.searchParams.get("url")!}`,
+          },
         }),
-      });
+      );
       break;
     }
     default:
       await handleFail(
         req,
         400,
-        `Invalid form action ${htmlEscape(form_action)}`,
+        `Invalid form action ${htmlEscape(args)}`,
       );
   }
 }
 
 const static_prefix = "/static/";
-async function handleStatic(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(static_prefix));
-  const resource = req.url.substr(static_prefix.length);
+async function handleStatic(req: Deno.RequestEvent): Promise<void> {
+  const path = new URL(req.request.url).pathname;
+  assert(path.startsWith(static_prefix));
+  const resource = path.substr(static_prefix.length);
   const asset = assets[resource];
 
   if (asset === undefined) {
     handleFail(req, 404, "Resource not found");
   } else {
-    await req.respond({
-      status: 200,
-      headers: new Headers({
-        "Content-Type": asset.mimetype ?? "application/octet-stream",
+    await req.respondWith(
+      new Response(asset.content, {
+        status: 200,
+        headers: {
+          "Content-Type": asset.mimetype ?? "application/octet-stream",
+        },
       }),
-      body: asset.content,
-    });
+    );
   }
 }
 
-async function handler(req: ServerRequest): Promise<void> {
+async function handler(req: Deno.RequestEvent): Promise<void> {
   try {
-    if (!["HEAD", "GET"].includes(req.method)) {
+    const path = new URL(req.request.url).pathname;
+    if (!["HEAD", "GET"].includes(req.request.method)) {
       handleFail(req, 404, "Invalid method");
     }
-
-    if (req.url.startsWith(static_prefix)) {
+    if (path.startsWith(static_prefix)) {
       await handleStatic(req);
-    } else if (req.url.startsWith(doc_prefix)) {
+    } else if (path.startsWith(doc_prefix)) {
       await handleDoc(req);
-    } else if (req.url.startsWith(form_prefix)) {
+    } else if (path.startsWith(form_prefix)) {
       await handleForm(req);
-    } else if (req.url === "/") {
+    } else if (path === "/") {
       await handleIndex(req);
     } else {
       await handleFail(req, 404, "Malformed path");
     }
   } finally {
-    req.finalize();
-    req.conn.close();
+    // pass
   }
 }
 
@@ -245,7 +256,7 @@ function argCheck(
 }
 
 function open(s: string): void {
-  let run = Deno.run({
+  const run = Deno.run({
     cmd: Deno.build.os === "windows"
       ? ["start", "", s]
       : Deno.build.os === "darwin"
@@ -287,7 +298,6 @@ async function mainGenerate() {
   const {
     builtin,
     dependencies,
-    generate,
     index,
     out,
     private: priv,
@@ -365,7 +375,7 @@ async function mainServer() {
         throw null;
       }
 
-      let run = Deno.run({
+      const run = Deno.run({
         cmd: [browser, url],
       });
 
@@ -374,16 +384,21 @@ async function mainServer() {
       open(url);
     }
   }
-
-  for await (const req of serve({ hostname, port })) {
-    await handler(req);
+  const listener = Deno.listen({ port, hostname });
+  for await (const conn of listener) {
+    (async () => {
+      const httpConn = Deno.serveHttp(conn);
+      for await (const req of httpConn) {
+        handler(req);
+      }
+    })();
   }
 }
 
 if (import.meta.main) {
-  const usage_string = `%cDocuraptor%c (${import.meta.url})
+  const usage_string = `${bold("Docuraptor")} (${import.meta.url})
 
-%cStart documentation server:%c
+${underline("Start documentation server:")}
 $ docuraptor [--port=<port>] [--hostname=<hostname>]
              [--skip-browser] [--private] [--builtin | <url>]
 
@@ -392,10 +407,10 @@ if the module specifier is omitted, the documentation index,
 in the system browser.
 Listens on 127.0.0.1:8709 by default.
 
-%cAdditionally requires network access for hostname:port.%c
+${italic("Additionally requires network access for hostname:port.")}
 
 
-%cGenerate HTML documentation:%c
+${underline("Generate HTML documentation:")}
 $ docuraptor --generate [--out=<output dir>] [--index=<index file>]
              [--dependencies] [--private] <url>...
 
@@ -405,42 +420,23 @@ current working directory.
 With the dependencies flag set documentation is also
 generated for all modules dependet upon.
 Writes an index of all generated documentation
-to the index file, defaulting to %cindex.html%c. 
+to the index file, defaulting to ${italic("index.html")}. 
 
-%cAdditionally requires write access to the output directory.%c
+${italic("Additionally requires write access to the output directory.")}
 
 
-%cAll functions require allow-run and read access to the Deno cache.%c
+${italic("All functions require allow-run and read access to the Deno cache.")}
 
 The system browser can be overwritten with the
 DOCURAPTOR_BROWSER and BROWSER environment variables.
-%cRequires allow-env.%c`;
-
-  const usage_css = [
-    "font-weight: bold",
-    "",
-    "text-decoration: underline;",
-    "",
-    "font-style: italic;",
-    "",
-    "text-decoration: underline;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-    "font-style: italic;",
-    "",
-  ];
+${italic("Requires allow-env.")}`;
 
   const { help, generate } = argsParse(Deno.args, {
     boolean: ["help", "generate"],
   });
 
   if (help) {
-    console.log(usage_string, ...usage_css);
+    console.log(usage_string);
     Deno.exit(0);
   }
 

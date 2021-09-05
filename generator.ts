@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { getDenoData } from "./deno_api.ts";
 import { assert, pathJoin, pooledMap } from "./deps.ts";
 import { DocRenderer } from "./renderer.ts";
@@ -32,14 +33,14 @@ export async function generateStatic(
       assert(info, `Deno failed to generate metadata for module ${mod}`);
 
       if (options?.recursive) {
-        for (const mod of Object.keys(info.files)) {
+        for (const mod of info.modules.map((mod) => mod.specifier)) {
           full_modules.add(mod);
         }
       } else {
         try {
           new URL(mod);
         } catch {
-          mod = new URL(info.local, "file:///").toString();
+          mod = new URL(info.root, "file:///").toString();
         }
         full_modules.add(mod);
       }
