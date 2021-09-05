@@ -10,3 +10,8 @@ export {
   italic,
   underline,
 } from "https://deno.land/std@0.106.0/fmt/colors.ts";
+export { createGraph } from "https://deno.land/x/deno_graph@0.2.1/mod.ts";
+export type {
+  Module,
+  ModuleGraph,
+} from "https://deno.land/x/deno_graph@0.2.1/mod.ts";

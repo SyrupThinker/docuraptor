@@ -1,9 +1,8 @@
+// deno-lint-ignore-file camelcase
 import assets from "./assets.ts";
 import { getDenoData } from "./deno_api.ts";
 import type * as ddoc from "./deno_doc_json.ts";
-import type * as info from "./deno_info_json.ts";
-import type { Dependency, Module } from "./deno_info_json.ts";
-import { assert, unreachable } from "./deps.ts";
+import { assert, Module, ModuleGraph, unreachable } from "./deps.ts";
 import { htmlEscape, humanSize, identifierId } from "./utility.ts";
 
 const sort_order: ddoc.DocNode["kind"][] = [
@@ -405,10 +404,10 @@ export class DocRenderer {
     return res;
   }
 
-  renderInfo(specifier: string, info: info.FileInfo): string {
+  renderInfo(specifier: string, info: ModuleGraph): string {
     const link = (
       spec: string,
-      dep: info.Module,
+      dep: Module,
       icon: string,
       icon_type: string,
     ) => {
@@ -424,16 +423,15 @@ export class DocRenderer {
 
     const unique_deps = info.modules;
     const direct_deps = new Set(
-      info.modules.find((module) => module.specifier === specifier)
-        ?.dependencies as info.Module[] | undefined,
+      info.modules,
     );
 
     function compare_deps(
       a_name: Module,
       b_name: Module,
     ): number {
-      let a_dir = direct_deps.has(a_name);
-      let b_dir = direct_deps.has(b_name);
+      const a_dir = direct_deps.has(a_name);
+      const b_dir = direct_deps.has(b_name);
 
       return -(a_name.specifier === specifier) ||
         +(b_name.specifier === specifier) ||
@@ -449,14 +447,16 @@ export class DocRenderer {
       <details>
         <summary class=padding>
           Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive. <i>${
-        humanSize(info.size ?? 0)
+        humanSize(
+          info.modules.find((module) => module.specifier === info.root)?.size ??
+            0,
+        )
       }</i>
         </summary>
         <ol class="nomarks indent monospace">
         ${
         unique_deps.sort((sp_a, sp_b) => compare_deps(sp_a, sp_b)).map((
           sp,
-          dep,
         ) =>
           link(
             sp.specifier,

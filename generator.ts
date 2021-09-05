@@ -1,3 +1,4 @@
+// deno-lint-ignore-file camelcase
 import { getDenoData } from "./deno_api.ts";
 import { assert, pathJoin, pooledMap } from "./deps.ts";
 import { DocRenderer } from "./renderer.ts";
