@@ -1,7 +1,7 @@
 export type Accessibility = "public" | "protected" | "private";
 
 export interface ClassConstructorDef {
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
   accessibility: Accessibility | null;
   name: string;
   params: ParamDef[];
@@ -27,7 +27,7 @@ export interface ClassIndexSignatureDef {
 }
 
 export interface ClassMethodDef {
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
   accessibility: Accessibility | null;
   optional: boolean;
   isAbstract: boolean;
@@ -39,7 +39,7 @@ export interface ClassMethodDef {
 }
 
 export interface ClassPropertyDef {
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
   tsType: TsTypeDef;
   readonly: boolean;
   accessibility: Accessibility | null;
@@ -48,6 +48,10 @@ export interface ClassPropertyDef {
   isStatic: boolean;
   name: string;
   location: Location;
+}
+
+export interface DocJsDoc {
+  doc?: string;
 }
 
 export type DocNode =
@@ -63,7 +67,7 @@ export type DocNode =
 export interface DocNodeBase {
   name: string;
   location: Location;
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
 }
 
 export interface DocNodeClass extends DocNodeBase {
@@ -125,7 +129,7 @@ export interface ImportDef {
 
 export interface InterfaceCallSignatureDef {
   location: Location;
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
   params: ParamDef[];
   tsType: TsTypeDef | null;
   typeParams: TsTypeParamDef[];
@@ -149,7 +153,7 @@ export interface InterfaceIndexSignatureDef {
 export interface InterfaceMethodDef {
   name: string;
   location: Location;
-  jsDoc: string | null;
+  jsDoc: DocJsDoc | null;
   optional: boolean;
   params: ParamDef[];
   returnType: TsTypeDef | null;
@@ -159,7 +163,7 @@ export interface InterfaceMethodDef {
 export interface InterfacePropertyDef {
   name: string;
   location: Location;
-  jsDoc: string;
+  jsDoc: DocJsDoc;
   params: ParamDef[];
   computed: boolean;
   optional: boolean;

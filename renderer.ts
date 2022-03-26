@@ -2,11 +2,8 @@ import assets from "./assets.ts";
 import { getDenoData } from "./deno_api.ts";
 import type * as ddoc from "./deno_doc_json.ts";
 import type * as info from "./deno_info_json.ts";
-import {
-  assert,
-  unreachable,
-} from "./deps.ts";
-import { htmlEscape, identifierId, humanSize } from "./utility.ts";
+import { assert, unreachable } from "./deps.ts";
+import { htmlEscape, humanSize, identifierId } from "./utility.ts";
 
 const sort_order: ddoc.DocNode["kind"][] = [
   "import",
@@ -60,11 +57,7 @@ export class DocRenderer {
     );
 
     if (info_j !== null) {
-      try {
-        new URL(specifier!);
-      } catch {
-        specifier = new URL(info_j.local, "file:///").toString();
-      }
+      specifier = info_j.roots[0];
     }
 
     return `<!DOCTYPE html>
@@ -97,8 +90,8 @@ export class DocRenderer {
       doc.accessibility ? htmlEscape(doc.accessibility) + " " : ""
     } constructor</span>(${this.renderParams(doc.params)})`;
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;
@@ -197,8 +190,8 @@ export class DocRenderer {
       res += `: ${this.renderTsTypeDef(doc.functionDef.returnType)}`;
     }
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;
@@ -215,8 +208,8 @@ export class DocRenderer {
       res += `: ${this.renderTsTypeDef(doc.tsType)}`;
     }
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;
@@ -236,7 +229,7 @@ export class DocRenderer {
   renderDocNode(doc: ddoc.DocNode): string {
     return `
     ${this.renderDocNodeKind(doc)}
-    ${doc.jsDoc !== null ? `<hr>${this.renderJSDoc(doc.jsDoc)}` : ""}
+    ${doc.jsDoc?.doc != null ? `<hr>${this.renderJSDoc(doc.jsDoc.doc)}` : ""}
   `;
   }
 
@@ -409,30 +402,32 @@ export class DocRenderer {
 
   renderInfo(specifier: string, info: info.FileInfo): string {
     const link = (
-      spec: string,
-      dep: info.FileDependency,
+      dep: info.Module,
       icon: string,
       icon_type: string,
     ) => {
-      const src_doc = this.#options.link_module?.(spec);
+      const src_doc = this.#options.link_module?.(dep.specifier);
       return `<li class=link><span class="iconize icon-${icon_type}">${icon}</span> ${
         src_doc === undefined
-          ? htmlEscape(spec)
-          : `<a href="${src_doc}">${htmlEscape(spec)}</a> <i>${
+          ? htmlEscape(dep.specifier)
+          : `<a href="${src_doc}">${htmlEscape(dep.specifier)}</a> <i>${
             humanSize(dep.size)
           }</i>`
       }</li>`;
     };
 
-    const unique_deps = Object.entries(info.files);
-    const direct_deps = new Set(info.files[specifier].deps);
+    const direct_deps = new Set(
+      info.modules.find((m) => m.specifier == specifier)?.dependencies?.map((
+        d,
+      ) => d.code?.specifier ?? d.type?.specifier),
+    );
 
     function compare_deps(
       a_name: string,
       b_name: string,
     ): number {
-      let a_dir = direct_deps.has(a_name);
-      let b_dir = direct_deps.has(b_name);
+      const a_dir = direct_deps.has(a_name);
+      const b_dir = direct_deps.has(b_name);
 
       return -(a_name === specifier) || +(b_name === specifier) ||
         (a_dir === b_dir
@@ -440,30 +435,29 @@ export class DocRenderer {
           : Number(b_dir) - Number(a_dir));
     }
 
-    const transitive = unique_deps.length - direct_deps.size - 1;
+    const totalSize = info.modules.reduce((a, b) => a + b.size, 0);
+    const transitive = info.modules.length - direct_deps.size - 1;
 
-    return unique_deps.length > 1
+    return info.modules.length > 1
       ? `<div class=metadata>
       <details>
         <summary class=padding>
           Unique dependencies: ${direct_deps.size} direct; ${transitive} transitive. <i>${
-        humanSize(info.totalSize ?? 0)
+        humanSize(totalSize ?? 0)
       }</i>
         </summary>
         <ol class="nomarks indent monospace">
         ${
-        unique_deps.sort(([sp_a], [sp_b]) => compare_deps(sp_a, sp_b)).map((
-          [sp, dep],
-        ) =>
-          link(
-            sp,
-            dep,
-            ...<[string, string]> (specifier === sp
-              ? ["S", "white"]
-              : direct_deps.has(sp)
-              ? ["D", "green"]
-              : ["T", "orange"]),
-          )
+        info.modules.sort((a, b) => compare_deps(a.specifier, b.specifier)).map(
+          (mod) =>
+            link(
+              mod,
+              ...<[string, string]> (specifier === mod.specifier
+                ? ["S", "white"]
+                : direct_deps.has(mod.specifier)
+                ? ["D", "green"]
+                : ["T", "orange"]),
+            ),
         ).join("")
       }
         </ol>
@@ -483,8 +477,8 @@ export class DocRenderer {
       res += `: ${this.renderTsTypeDef(doc.tsType)}`;
     }
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;
@@ -556,8 +550,8 @@ export class DocRenderer {
       res += `: ${this.renderTsTypeDef(doc.returnType)}`;
     }
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;
@@ -570,8 +564,8 @@ export class DocRenderer {
       res += `: ${this.renderTsTypeDef(doc.tsType)}`;
     }
 
-    if (doc.jsDoc !== null) {
-      res += `<hr>${this.renderJSDoc(doc.jsDoc)}`;
+    if (doc.jsDoc?.doc != null) {
+      res += `<hr>${this.renderJSDoc(doc.jsDoc.doc)}`;
     }
 
     return res;

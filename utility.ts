@@ -13,7 +13,7 @@ export function humanSize(bytes: number): string {
     unit++;
   }
 
-  let visual = Math.round(bytes * 100) / 100;
+  const visual = Math.round(bytes * 100) / 100;
   return `${visual !== bytes ? "~" : ""}${visual}${size_units[unit]}`;
 }
 

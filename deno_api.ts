@@ -40,7 +40,6 @@ export async function getDenoData(
           "deno",
           "info",
           "--json",
-          "--unstable",
           specifier,
         ],
         stdin: "null",

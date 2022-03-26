@@ -1,12 +1,5 @@
 import assets from "./assets.ts";
-import {
-  assert,
-  argsParse,
-  pathJoin,
-  serve,
-  ServerRequest,
-  unreachable,
-} from "./deps.ts";
+import { argsParse, assert, unreachable } from "./deps.ts";
 import { generateStatic } from "./generator.ts";
 import { DocRenderer } from "./renderer.ts";
 import { htmlEscape } from "./utility.ts";
@@ -18,10 +11,10 @@ const decoder = new TextDecoder();
  */
 
 const doc_prefix = "/doc/";
-async function handleDoc(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(doc_prefix));
+async function handleDoc(url: URL, ev: Deno.RequestEvent): Promise<void> {
+  assert(url.pathname.startsWith(doc_prefix));
 
-  const args = req.url.substr(doc_prefix.length);
+  const args = url.pathname.substr(doc_prefix.length);
   const search_index = args.indexOf("?");
 
   const doc_url = decodeURIComponent(
@@ -40,35 +33,33 @@ async function handleDoc(req: ServerRequest): Promise<void> {
       doc_url.length > 0 ? doc_url : undefined,
     );
   } catch (err) {
+    console.error(err);
+
     if (err.stderr !== undefined) {
-      handleFail(req, 500, htmlEscape(err.stderr));
+      await handleFail(ev, 500, htmlEscape(err.stderr));
     } else {
-      handleFail(req, 500, "Documentation generation failed");
+      await handleFail(ev, 500, "Documentation generation failed");
     }
     return;
   }
 
-  await req.respond({
-    status: 200,
-    headers: new Headers({
-      "Content-Type": "text/html",
+  await ev.respondWith(
+    new Response(doc, {
+      status: 200,
+      headers: new Headers({
+        "Content-Type": "text/html",
+      }),
     }),
-    body: doc,
-  });
+  );
 }
 
 async function handleFail(
-  req: ServerRequest,
+  ev: Deno.RequestEvent,
   status: number,
   message: string,
 ): Promise<void> {
   const rend = new DocRenderer();
-  await req.respond({
-    status,
-    headers: new Headers({
-      "Content-Type": "text/html",
-    }),
-    body: `<!DOCTYPE html>
+  const body = `<!DOCTYPE html>
     <html>
       <head>
         ${rend.renderHead("Docuraptor Error")}
@@ -81,13 +72,21 @@ async function handleFail(
           </pre>
         </main>
       </body>
-    </html>`,
-  });
+    </html>`;
+
+  await ev.respondWith(
+    new Response(body, {
+      status,
+      headers: {
+        "Content-Type": "text/html",
+      },
+    }),
+  );
 }
 
 const file_url = new URL("file:/");
 let deps_url: URL | undefined = undefined;
-async function handleIndex(req: ServerRequest): Promise<void> {
+async function handleIndex(ev: Deno.RequestEvent): Promise<void> {
   const known_documentation = [];
 
   if (deps_url !== undefined) {
@@ -122,12 +121,7 @@ async function handleIndex(req: ServerRequest): Promise<void> {
   }
 
   const rend = new DocRenderer();
-  await req.respond({
-    status: 200,
-    headers: new Headers({
-      "Content-Type": "text/html",
-    }),
-    body: `<html>
+  const body = `<html>
       <head>
         ${rend.renderHead("Docuraptor Index")}
       </head>
@@ -137,25 +131,33 @@ async function handleIndex(req: ServerRequest): Promise<void> {
           <ul>
             <li class=link><a href="/doc/">Deno Builtin</a></li>
             ${
-      known_documentation.sort().map(
-        (url) =>
-          `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
-            htmlEscape(url)
-          }</a></li>`,
-      ).join("")
-    }
+    known_documentation.sort().map(
+      (url) =>
+        `<li class=link><a href="/doc/${encodeURIComponent(url)}">${
+          htmlEscape(url)
+        }</a></li>`,
+    ).join("")
+  }
           </ul>
         </main>
       </body>
-    </html>`,
-  });
+    </html>`;
+
+  await ev.respondWith(
+    new Response(body, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html",
+      },
+    }),
+  );
 }
 
 const form_prefix = "/form/";
-async function handleForm(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(form_prefix));
+async function handleForm(url: URL, ev: Deno.RequestEvent): Promise<void> {
+  assert(url.pathname.startsWith(form_prefix));
 
-  const args = req.url.substr(form_prefix.length);
+  const args = url.pathname.substr(form_prefix.length);
   const search_index = args.indexOf("?");
   const form_action = args.slice(0, search_index);
   const search = new URLSearchParams(
@@ -165,21 +167,23 @@ async function handleForm(req: ServerRequest): Promise<void> {
   switch (form_action) {
     case "open": {
       if (!search.has("url")) {
-        await handleFail(req, 400, "Received invalid request");
+        await handleFail(ev, 400, "Received invalid request");
         return;
       }
 
-      await req.respond({
-        status: 301,
-        headers: new Headers({
-          "Location": `/doc/${search.get("url")!}`,
+      await ev.respondWith(
+        new Response(undefined, {
+          status: 301,
+          headers: new Headers({
+            "Location": `/doc/${search.get("url")!}`,
+          }),
         }),
-      });
+      );
       break;
     }
     default:
       await handleFail(
-        req,
+        ev,
         400,
         `Invalid form action ${htmlEscape(form_action)}`,
       );
@@ -187,44 +191,52 @@ async function handleForm(req: ServerRequest): Promise<void> {
 }
 
 const static_prefix = "/static/";
-async function handleStatic(req: ServerRequest): Promise<void> {
-  assert(req.url.startsWith(static_prefix));
-  const resource = req.url.substr(static_prefix.length);
+async function handleStatic(url: URL, ev: Deno.RequestEvent): Promise<void> {
+  assert(url.pathname.startsWith(static_prefix));
+  const resource = url.pathname.substr(static_prefix.length);
   const asset = assets[resource];
 
   if (asset === undefined) {
-    handleFail(req, 404, "Resource not found");
+    handleFail(ev, 404, "Resource not found");
   } else {
-    await req.respond({
-      status: 200,
-      headers: new Headers({
-        "Content-Type": asset.mimetype ?? "application/octet-stream",
+    await ev.respondWith(
+      new Response(asset.content, {
+        status: 200,
+        headers: {
+          "Content-Type": asset.mimetype ?? "application/octet-stream",
+        },
       }),
-      body: asset.content,
-    });
+    );
   }
 }
 
-async function handler(req: ServerRequest): Promise<void> {
-  try {
-    if (!["HEAD", "GET"].includes(req.method)) {
-      handleFail(req, 404, "Invalid method");
-    }
+async function handler(req: Deno.RequestEvent): Promise<void> {
+  if (!["HEAD", "GET"].includes(req.request.method)) {
+    return await handleFail(req, 404, "Invalid method");
+  }
 
-    if (req.url.startsWith(static_prefix)) {
-      await handleStatic(req);
-    } else if (req.url.startsWith(doc_prefix)) {
-      await handleDoc(req);
-    } else if (req.url.startsWith(form_prefix)) {
-      await handleForm(req);
-    } else if (req.url === "/") {
-      await handleIndex(req);
-    } else {
-      await handleFail(req, 404, "Malformed path");
+  const url = new URL(req.request.url);
+
+  if (url.pathname.startsWith(static_prefix)) {
+    await handleStatic(url, req);
+  } else if (url.pathname.startsWith(doc_prefix)) {
+    await handleDoc(url, req);
+  } else if (url.pathname.startsWith(form_prefix)) {
+    await handleForm(url, req);
+  } else if (url.pathname === "/") {
+    await handleIndex(req);
+  } else {
+    await handleFail(req, 404, "Malformed path");
+  }
+}
+
+async function handleHttp(conn: Deno.Conn): Promise<void> {
+  try {
+    for await (const req of Deno.serveHttp(conn)) {
+      await handler(req);
     }
-  } finally {
-    req.finalize();
-    req.conn.close();
+  } catch (err) {
+    console.error(err);
   }
 }
 
@@ -245,7 +257,7 @@ function argCheck(
 }
 
 function open(s: string): void {
-  let run = Deno.run({
+  const run = Deno.run({
     cmd: Deno.build.os === "windows"
       ? ["start", "", s]
       : Deno.build.os === "darwin"
@@ -265,7 +277,7 @@ async function initialize() {
   let p;
   try {
     p = Deno.run({
-      cmd: ["deno", "info", "--json", "--unstable"],
+      cmd: ["deno", "info", "--json"],
       stdin: "null",
       stdout: "piped",
       stderr: "null",
@@ -287,7 +299,6 @@ async function mainGenerate() {
   const {
     builtin,
     dependencies,
-    generate,
     index,
     out,
     private: priv,
@@ -365,7 +376,7 @@ async function mainServer() {
         throw null;
       }
 
-      let run = Deno.run({
+      const run = Deno.run({
         cmd: [browser, url],
       });
 
@@ -375,8 +386,8 @@ async function mainServer() {
     }
   }
 
-  for await (const req of serve({ hostname, port })) {
-    await handler(req);
+  for await (const conn of Deno.listen({ hostname, port })) {
+    handleHttp(conn);
   }
 }
 
@@ -405,7 +416,7 @@ current working directory.
 With the dependencies flag set documentation is also
 generated for all modules dependet upon.
 Writes an index of all generated documentation
-to the index file, defaulting to %cindex.html%c. 
+to the index file, defaulting to %cindex.html%c.
 
 %cAdditionally requires write access to the output directory.%c
 
